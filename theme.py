@@ -1,0 +1,21 @@
+# theme.py
+LIGHT_THEME = {
+    'background': 'linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%)',
+    'sidebar_bg': 'linear-gradient(135deg, #232526 0%, #414345 100%)',
+    'content_bg': '#ffffffcc',
+    'text': '#22223b',
+    'text_light': '#ffffff',
+    'input_bg': '#f4f6fb',
+    'button_primary': 'linear-gradient(90deg, #4f8cff 0%, #38b6ff 100%)',
+    'button_danger': '#e74c3c',
+    'border': '#e0e0e0',
+    'checkbox': '#38b6ff',
+    'placeholder': '#bfc9d1',
+    'error': '#e74c3c',
+    'hover': '#e3e8f0',
+    'success': '#2ecc71',
+    'warning': '#f39c12',
+    'shadow': '0 4px 24px rgba(80, 112, 255, 0.10)',
+    'radius': '12px',
+    'font': 'Inter, Segoe UI, Arial, sans-serif',
+}
