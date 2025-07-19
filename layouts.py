@@ -545,82 +545,64 @@ def get_math_tasks_list(tasks):
                         })
                     ])
                 ], style={'flex': '1'}),
+                
+                # Right side with dropdown menu and progress
                 html.Div([
+                    # Dropdown menu button
                     html.Div([
                         html.Button([
-                            html.Span("➕", style={'marginRight': '6px'}),
-                            "Dodaj zadanie"
+                            html.Span("⚙️", style={'fontSize': '18px'})
                         ],
-                            id={'type': 'add-task-to-set-btn', 'index': set_id},
+                            id={'type': 'toggle-set-menu', 'index': set_id},
                             n_clicks=0,
                             style={
-                                'padding': '8px 16px',
+                                'width': '40px',
+                                'height': '40px',
+                                'borderRadius': '50%',
                                 'background': 'rgba(255,255,255,0.2)',
                                 'color': 'white',
                                 'border': '1px solid rgba(255,255,255,0.3)',
-                                'borderRadius': LIGHT_THEME['radius'],
                                 'cursor': 'pointer',
-                                'fontWeight': '600',
-                                'fontSize': '14px',
-                                'marginRight': '8px',
-                                'transition': 'all 0.3s ease'
+                                'display': 'flex',
+                                'alignItems': 'center',
+                                'justifyContent': 'center',
+                                'transition': 'all 0.3s ease',
+                                'marginRight': '16px'
                             }
-                        ),
-                        html.Button([
-                            html.Span("✏️", style={'marginRight': '6px'}),
-                            "Edytuj zestaw"
-                        ],
-                            id={'type': 'edit-set-btn', 'index': set_id},
-                            n_clicks=0,
-                            style={
-                                'padding': '8px 16px',
-                                'background': 'rgba(255,255,255,0.2)',
-                                'color': 'white',
-                                'border': '1px solid rgba(255,255,255,0.3)',
-                                'borderRadius': LIGHT_THEME['radius'],
-                                'cursor': 'pointer',
-                                'fontWeight': '600',
-                                'fontSize': '14px',
-                                'marginRight': '8px',
-                                'transition': 'all 0.3s ease'
-                            }
-                        ),
-                        html.Button([
-                            html.Span("🗑️", style={'marginRight': '6px'}),
-                            "Usuń zestaw"
-                        ],
-                            id={'type': 'delete-set-btn', 'index': set_id},
-                            n_clicks=0,
-                            style={
-                                'padding': '8px 16px',
-                                'background': 'rgba(220, 53, 69, 0.8)',
-                                'color': 'white',
-                                'border': '1px solid rgba(220, 53, 69, 0.3)',
-                                'borderRadius': LIGHT_THEME['radius'],
-                                'cursor': 'pointer',
-                                'fontWeight': '600',
-                                'fontSize': '14px',
-                                'marginRight': '8px',
-                                'transition': 'all 0.3s ease'
-                            }
-                        ),
-                        html.Div(style={
-                            'width': '60px',
-                            'height': '6px',
-                            'background': '#e2e8f0',
-                            'borderRadius': '3px',
-                            'overflow': 'hidden',
-                            'marginTop': '4px'
-                        }, children=[
+                        )
+                    ], style={
+                        'position': 'relative',  # Ważne dla pozycjonowania menu
+                        'zIndex': '1'
+                    }),
+                    
+                    # Progress section (always visible)
+                    html.Div([
+                        html.Div([
+                            html.Span(f"{completion_rate*100:.0f}%", style={
+                                'fontSize': '24px',
+                                'fontWeight': '800',
+                                'color': LIGHT_THEME['success'] if completion_rate > 0.7 else LIGHT_THEME['warning'] if completion_rate > 0.3 else LIGHT_THEME['error'],
+                                'marginBottom': '4px',
+                                'display': 'block'
+                            }),
                             html.Div(style={
-                                'width': f"{completion_rate*100}%",
-                                'height': '100%',
-                                'background': LIGHT_THEME['success'] if completion_rate > 0.7 else LIGHT_THEME['warning'] if completion_rate > 0.3 else LIGHT_THEME['error'],
-                                'transition': 'width 0.5s ease'
-                            })
-                        ])
-                    ], style={'textAlign': 'center'})
-                ])
+                                'width': '80px',
+                                'height': '8px',
+                                'background': 'rgba(255,255,255,0.3)',
+                                'borderRadius': '4px',
+                                'overflow': 'hidden'
+                            }, children=[
+                                html.Div(style={
+                                    'width': f"{completion_rate*100}%",
+                                    'height': '100%',
+                                    'background': LIGHT_THEME['success'] if completion_rate > 0.7 else LIGHT_THEME['warning'] if completion_rate > 0.3 else LIGHT_THEME['error'],
+                                    'transition': 'width 0.5s ease',
+                                    'borderRadius': '4px'
+                                })
+                            ])
+                        ], style={'textAlign': 'center'})
+                    ])
+                ], style={'display': 'flex', 'alignItems': 'center'})
             ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'})
         ], style={
             'margin': '32px 0 20px 0',
@@ -632,8 +614,93 @@ def get_math_tasks_list(tasks):
             'backdropFilter': 'blur(10px)'
         })
         
-        set_sections.append(html.Div([set_header] + task_rows, style={
-            'marginBottom': '40px'
+        dropdown_menu = html.Div([
+            html.Button([
+                html.Span("➕", style={'marginRight': '8px'}),
+                "Dodaj zadanie"
+            ],
+                id={'type': 'add-task-to-set-btn', 'index': set_id},
+                n_clicks=0,
+                style={
+                    'width': '100%',
+                    'padding': '12px 16px',
+                    'background': 'rgba(102, 126, 234, 0.9)',
+                    'color': 'white',
+                    'border': 'none',
+                    'borderRadius': '8px',
+                    'cursor': 'pointer',
+                    'fontWeight': '600',
+                    'fontSize': '14px',
+                    'marginBottom': '8px',
+                    'transition': 'all 0.3s ease',
+                    'textAlign': 'left'
+                }
+            ),
+            html.Button([
+                html.Span("✏️", style={'marginRight': '8px'}),
+                "Edytuj zestaw"
+            ],
+                id={'type': 'edit-set-btn', 'index': set_id},
+                n_clicks=0,
+                style={
+                    'width': '100%',
+                    'padding': '12px 16px',
+                    'background': 'rgba(243, 156, 18, 0.9)',
+                    'color': 'white',
+                    'border': 'none',
+                    'borderRadius': '8px',
+                    'cursor': 'pointer',
+                    'fontWeight': '600',
+                    'fontSize': '14px',
+                    'marginBottom': '8px',
+                    'transition': 'all 0.3s ease',
+                    'textAlign': 'left'
+                }
+            ),
+            html.Button([
+                html.Span("🗑️", style={'marginRight': '8px'}),
+                "Usuń zestaw"
+            ],
+                id={'type': 'delete-set-btn', 'index': set_id},
+                n_clicks=0,
+                style={
+                    'width': '100%',
+                    'padding': '12px 16px',
+                    'background': 'rgba(220, 53, 69, 0.9)',
+                    'color': 'white',
+                    'border': 'none',
+                    'borderRadius': '8px',
+                    'cursor': 'pointer',
+                    'fontWeight': '600',
+                    'fontSize': '14px',
+                    'transition': 'all 0.3s ease',
+                    'textAlign': 'left'
+                }
+            )
+        ], 
+            id={'type': 'set-dropdown-menu', 'index': set_id},
+            style={
+                'position': 'absolute',
+                'top': '50px',  # Bezpośrednio pod przyciskiem (40px wysokość + 10px margines)
+                'right': '100px',  # Wyrównane z przyciskiem (80px szerokość progress + 20px margines)
+                'background': 'white',
+                'borderRadius': '12px',
+                'boxShadow': '0 8px 32px rgba(0,0,0,0.25)',
+                'padding': '16px',
+                'minWidth': '200px',
+                'zIndex': '9999',
+                'border': '1px solid rgba(0,0,0,0.1)',
+                'display': 'none'
+            }
+        )
+        
+        set_sections.append(html.Div([
+            set_header,
+            dropdown_menu,  # Menu tutaj
+            html.Div(task_rows)  # Zadania w osobnym div
+        ], style={
+            'marginBottom': '40px',
+            'position': 'relative'  # Ważne dla absolute positioning
         }))
     
     return html.Div(set_sections)

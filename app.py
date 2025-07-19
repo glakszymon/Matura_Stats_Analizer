@@ -214,6 +214,29 @@ app.index_string = '''
                 background: rgba(255,255,255,0.3) !important;
                 transform: translateY(-2px);
             }
+
+            .set-menu-button:hover {
+                background: rgba(255,255,255,0.4) !important;
+                transform: scale(1.1);
+            }
+
+            .dropdown-menu-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            }
+
+            .set-dropdown-menu {
+                position: absolute !important;
+                z-index: 9999 !important;
+                background: white !important;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.15) !important;
+            }
+
+            /* Upewnij się, że container ma relative positioning */
+            .set-menu-container {
+                position: relative !important;
+                z-index: 1 !important;
+            }
         </style>
     </head>
     <body>
@@ -223,12 +246,55 @@ app.index_string = '''
             {%scripts%}
             {%renderer%}
         </footer>
+        <script>
+// Zamykanie menu po kliknięciu poza nim
+document.addEventListener('click', function(event) {
+    const menus = document.querySelectorAll('[id*="set-dropdown-menu"]');
+    const buttons = document.querySelectorAll('[id*="toggle-set-menu"]');
+    
+    let clickedButton = false;
+    buttons.forEach(button => {
+        if (button.contains(event.target)) {
+            clickedButton = true;
+        }
+    });
+    
+    if (!clickedButton) {
+        menus.forEach(menu => {
+            if (!menu.contains(event.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    }
+});
+
+// ESC key handler
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        // Update keyboard-listener store
+        const store = document.getElementById('keyboard-listener');
+        if (store) {
+            // Trigger callback by updating store data
+            const currentTime = Date.now();
+            store.setAttribute('data-value', JSON.stringify({escape: currentTime}));
+            
+            // Dispatch custom event to trigger Dash callback
+            const customEvent = new CustomEvent('dash-store-update', {
+                detail: {escape: currentTime}
+            });
+            document.dispatchEvent(customEvent);
+        }
+    }
+});
+</script>
     </body>
 </html>
 '''
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
+    dcc.Store(id='keyboard-listener', data={}),
+    html.Div(id='keyboard-events', style={'display': 'none'}),
     get_sidebar(),
     
     # Right side panel for adding tasks
