@@ -7,7 +7,7 @@ from callbacks import register_callbacks
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
 
-# Custom CSS for enhanced styling
+# Custom CSS for enhanced responsive styling
 app.index_string = '''
 <!DOCTYPE html>
 <html>
@@ -32,6 +32,182 @@ app.index_string = '''
                 overflow-x: hidden;
             }
             
+            /* Responsive base styles */
+            .container {
+                width: 100%;
+                padding-right: 15px;
+                padding-left: 15px;
+                margin-right: auto;
+                margin-left: auto;
+            }
+            
+            @media (min-width: 576px) {
+                .container {
+                    max-width: 540px;
+                }
+            }
+            
+            @media (min-width: 768px) {
+                .container {
+                    max-width: 720px;
+                }
+            }
+            
+            @media (min-width: 992px) {
+                .container {
+                    max-width: 960px;
+                }
+            }
+            
+            @media (min-width: 1200px) {
+                .container {
+                    max-width: 1140px;
+                }
+            }
+            
+            /* Mobile menu button */
+            .mobile-menu-btn {
+                display: none;
+                background: rgba(255,255,255,0.2);
+                border: none;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                backdrop-filter: blur(5px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                position: fixed;
+                top: 15px;
+                left: 15px;
+                z-index: 1002; /* Wyższy niż sidebar */
+                transition: all 0.3s ease;
+            }
+            
+            .mobile-menu-btn:hover {
+                background: rgba(255,255,255,0.3);
+                transform: scale(1.1);
+            }
+            
+            /* Sidebar responsiveness */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                transition: transform 0.3s ease;
+                z-index: 1001; /* Wyższy niż overlay */
+            }
+            
+            .sidebar.collapsed {
+                transform: translateX(-280px);
+            }
+            
+            .page-content.expanded {
+                margin-left: 0;
+            }
+            
+            @media (max-width: 992px) {
+                .sidebar {
+                    width: 240px !important;
+                    transform: translateX(-100%);
+                    transition: transform 0.3s ease;
+                    z-index: 1001 !important;
+                    position: fixed !important;
+                }
+                
+                .sidebar.open {
+                    transform: translateX(0);
+                }
+                
+                .page-content {
+                    margin-left: 0 !important;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                }
+                
+                .mobile-menu-btn {
+                    display: block !important;
+                }
+            }
+            
+            @media (min-width: 993px) {
+                .mobile-close-btn {
+                    display: flex !important;
+                }
+            }
+            
+            /* Responsive cards */
+            .card-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+            
+            .card {
+                flex: 1 1 300px;
+                min-width: 0;
+            }
+            
+            /* Responsive tables */
+            .responsive-table {
+                width: 100%;
+                overflow-x: auto;
+            }
+            
+            /* Mobile optimizations */
+            @media (max-width: 768px) {
+                h1 {
+                    font-size: 32px !important;
+                }
+                
+                .feature-cards {
+                    flex-direction: column;
+                }
+                
+                .side-panel {
+                    width: 100% !important;
+                }
+                
+                .modal-content {
+                    padding: 20px 0 !important;
+                }
+                
+                .fab-button {
+                    bottom: 20px !important;
+                    right: 20px !important;
+                    width: 60px !important;
+                    height: 60px !important;
+                }
+                
+                .task-card {
+                    margin-bottom: 15px;
+                }
+                
+                .stats-grid {
+                    grid-template-columns: 1fr !important;
+                    gap: 15px !important;
+                }
+            }
+            
+            @media (max-width: 480px) {
+                .container {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                }
+                
+                .modal-content > div {
+                    padding: 20px !important;
+                }
+                
+                .side-panel .panel-content {
+                    padding: 16px !important;
+                }
+            }
+            
+            /* Existing hover effects */
             .sidebar-item:hover {
                 background: rgba(255, 255, 255, 0.1) !important;
                 transform: translateX(8px);
@@ -240,6 +416,9 @@ app.index_string = '''
         </style>
     </head>
     <body>
+        <!-- Mobile menu button -->
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        
         {%app_entry%}
         <footer>
             {%config%}
@@ -247,27 +426,116 @@ app.index_string = '''
             {%renderer%}
         </footer>
         <script>
-// Zamykanie menu po kliknięciu poza nim
-document.addEventListener('click', function(event) {
-    const menus = document.querySelectorAll('[id*="set-dropdown-menu"]');
-    const buttons = document.querySelectorAll('[id*="toggle-set-menu"]');
-    
-    let clickedButton = false;
-    buttons.forEach(button => {
-        if (button.contains(event.target)) {
-            clickedButton = true;
-        }
-    });
-    
-    if (!clickedButton) {
-        menus.forEach(menu => {
-            if (!menu.contains(event.target)) {
-                menu.style.display = 'none';
+            // Funkcja do zamykania sidebara
+            function closeSidebar() {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.getElementById('mobile-menu-overlay');
+                const pageContent = document.querySelector('.page-content');
+                
+                if (window.innerWidth <= 992) {
+                    sidebar.classList.remove('open');
+                    overlay.style.display = 'none';
+                } else {
+                    sidebar.classList.add('collapsed');
+                    pageContent.classList.add('expanded');
+                }
             }
-        });
-    }
-});
-</script>
+            
+            // Funkcja do otwierania sidebara
+            function openSidebar() {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.getElementById('mobile-menu-overlay');
+                const pageContent = document.querySelector('.page-content');
+                
+                if (window.innerWidth <= 992) {
+                    sidebar.classList.add('open');
+                    overlay.style.display = 'block';
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    pageContent.classList.remove('expanded');
+                }
+            }
+            
+            // Toggle mobile sidebar
+            document.getElementById('mobile-menu-toggle').addEventListener('click', function(e) {
+                e.stopPropagation();
+                const sidebar = document.querySelector('.sidebar');
+                
+                if (window.innerWidth <= 992) {
+                    if (sidebar.classList.contains('open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                } else {
+                    if (sidebar.classList.contains('collapsed')) {
+                        openSidebar();
+                    } else {
+                        closeSidebar();
+                    }
+                }
+            });
+            
+            // Close sidebar when clicking on overlay
+            document.addEventListener('click', function(event) {
+                const sidebar = document.querySelector('.sidebar');
+                const overlay = document.getElementById('mobile-menu-overlay');
+                
+                if (window.innerWidth <= 992 && 
+                    event.target === overlay && 
+                    sidebar.classList.contains('open')) {
+                    closeSidebar();
+                }
+            });
+            
+            // Event listener dla overlay
+            document.addEventListener('DOMContentLoaded', function() {
+                const overlay = document.getElementById('mobile-menu-overlay');
+                if (overlay) {
+                    overlay.addEventListener('click', function(e) {
+                        if (e.target === overlay) {
+                            closeSidebar();
+                        }
+                    });
+                }
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const sidebar = document.querySelector('.sidebar');
+                const pageContent = document.querySelector('.page-content');
+                const overlay = document.getElementById('mobile-menu-overlay');
+                
+                if (window.innerWidth > 992) {
+                    sidebar.classList.remove('open');
+                    overlay.style.display = 'none';
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    pageContent.classList.remove('expanded');
+                }
+            });
+            
+            // Close dropdown menus when clicking outside
+            document.addEventListener('click', function(event) {
+                const menus = document.querySelectorAll('[id*="set-dropdown-menu"]');
+                const buttons = document.querySelectorAll('[id*="toggle-set-menu"]');
+                
+                let clickedButton = false;
+                buttons.forEach(button => {
+                    if (button.contains(event.target)) {
+                        clickedButton = true;
+                    }
+                });
+                
+                if (!clickedButton) {
+                    menus.forEach(menu => {
+                        if (!menu.contains(event.target)) {
+                            menu.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        </script>
     </body>
 </html>
 '''
@@ -275,6 +543,21 @@ document.addEventListener('click', function(event) {
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     get_sidebar(),
+    
+    # Mobile menu overlay
+    html.Div(
+        id='mobile-menu-overlay',
+        style={
+            'position': 'fixed',
+            'top': 0,
+            'left': 0,
+            'right': 0,
+            'bottom': 0,
+            'background': 'rgba(0,0,0,0.5)',
+            'zIndex': 1000,  # Pod sidebar (1001)
+            'display': 'none'
+        }
+    ),
     
     # Right side panel for adding tasks
     html.Div(
@@ -295,7 +578,7 @@ app.layout = html.Div([
                             html.Span("✨", style={'marginRight': '12px'}),
                             "Dodaj nowy zestaw"
                         ], style={
-                            'color': LIGHT_THEME['text'],
+                                                        'color': LIGHT_THEME['text'],
                             'fontWeight': '800',
                             'fontSize': '24px',
                             'margin': '0'
@@ -692,7 +975,7 @@ app.layout = html.Div([
                             {'label': '📊 Matematyka', 'value': 'matematyka'},
                             {'label': '💻 Informatyka', 'value': 'informatyka'}
                         ],
-                        style={
+                                                style={
                             'width': '100%',
                             'marginBottom': '24px',
                             'borderRadius': LIGHT_THEME['radius'],
@@ -1041,8 +1324,10 @@ app.layout = html.Div([
             'padding': '0',
             'background': 'transparent',
             'minHeight': '100vh',
-            'fontFamily': LIGHT_THEME['font']
-        }
+            'fontFamily': LIGHT_THEME['font'],
+            'transition': 'margin-left 0.3s ease'
+        },
+        className='page-content'
     ),
     dcc.Store(id='math-tasks-store', data=[]),
     dcc.Store(id='task-set-store', data={'tasks': [], 'current_set': None, 'subject': 'matematyka'}),

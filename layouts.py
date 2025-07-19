@@ -136,123 +136,121 @@ def get_sidebar():
         'boxShadow': LIGHT_THEME['shadow_strong'],
         'zIndex': 100,
         'borderTopRightRadius': LIGHT_THEME['radius_large'],
-        'borderBottomRightRadius': LIGHT_THEME['radius_large']
-    })
+        'borderBottomRightRadius': LIGHT_THEME['radius_large'],
+        'transition': 'transform 0.3s ease'
+    }, className='sidebar')
 
 def get_home_layout():
     return html.Div([
         html.Div([
-            html.Div("🎓", style={
-                'fontSize': '80px',
-                'textAlign': 'center',
-                'marginBottom': '24px',
-                'animation': 'floating 3s ease-in-out infinite'
-            }),
-            html.H1("Witaj w LifeChanger!", style={
-                'textAlign': 'center', 
-                'color': LIGHT_THEME['text'], 
-                'fontWeight': '800', 
-                'fontSize': '48px',
-                'marginBottom': '20px'
-            }),
-            html.P("Zarządzaj zadaniami maturalnymi, śledź postępy i analizuj statystyki w nowoczesny sposób.", style={
-                'textAlign': 'center', 
-                'fontSize': '22px', 
-                'color': LIGHT_THEME['text'], 
-                'marginTop': '20px',
-                'lineHeight': '1.6',
-                'fontWeight': '500'
-            }),
-            
-            # Feature cards
             html.Div([
-                html.Div([
-                    html.Div("📚", style={'fontSize': '48px', 'marginBottom': '16px'}),
-                    html.H3("Organizuj zadania", style={
-                        'color': LIGHT_THEME['text'],
-                        'fontWeight': '700',
-                        'marginBottom': '12px'
-                    }),
-                    html.P("Twórz zestawy zadań maturalnych i organizuj je według przedmiotów", style={
-                        'color': LIGHT_THEME['placeholder'],
-                        'fontSize': '16px',
-                        'lineHeight': '1.5'
-                    })
-                ], style={
-                    'background': LIGHT_THEME['content_bg'],
-                    'padding': '32px',
-                    'borderRadius': LIGHT_THEME['radius'],
-                    'boxShadow': LIGHT_THEME['shadow'],
+                html.Div("🎓", style={
+                    'fontSize': '80px',
                     'textAlign': 'center',
-                    'flex': '1',
-                    'margin': '0 16px',
-                    'transition': 'transform 0.3s ease, box-shadow 0.3s ease'
-                }, className='task-card'),
+                    'marginBottom': '24px',
+                    'animation': 'floating 3s ease-in-out infinite'
+                }),
+                html.H1("Witaj w LifeChanger!", style={
+                    'textAlign': 'center', 
+                    'color': LIGHT_THEME['text'], 
+                    'fontWeight': '800', 
+                    'fontSize': 'clamp(32px, 5vw, 48px)',
+                    'marginBottom': '20px'
+                }),
+                html.P("Zarządzaj zadaniami maturalnymi, śledź postępy i analizuj statystyki w nowoczesny sposób.", style={
+                    'textAlign': 'center', 
+                    'fontSize': 'clamp(16px, 2.5vw, 22px)', 
+                    'color': LIGHT_THEME['text'], 
+                    'marginTop': '20px',
+                    'lineHeight': '1.6',
+                    'fontWeight': '500'
+                }),
                 
+                # Feature cards - now responsive
                 html.Div([
-                    html.Div("📊", style={'fontSize': '48px', 'marginBottom': '16px'}),
-                    html.H3("Śledź postępy", style={
-                        'color': LIGHT_THEME['text'],
-                        'fontWeight': '700',
-                        'marginBottom': '12px'
+                    html.Div([
+                        html.Div("📚", style={'fontSize': '48px', 'marginBottom': '16px'}),
+                        html.H3("Organizuj zadania", style={
+                            'color': LIGHT_THEME['text'],
+                            'fontWeight': '700',
+                            'marginBottom': '12px',
+                            'fontSize': 'clamp(18px, 2vw, 24px)'
+                        }),
+                        html.P("Twórz zestawy zadań maturalnych i organizuj je według przedmiotów", style={
+                            'color': LIGHT_THEME['placeholder'],
+                            'fontSize': 'clamp(14px, 1.5vw, 16px)',
+                            'lineHeight': '1.5'
+                        })
+                    ], className='card', style={
+                        'background': LIGHT_THEME['content_bg'],
+                        'padding': 'clamp(20px, 3vw, 32px)',
+                        'borderRadius': LIGHT_THEME['radius'],
+                        'boxShadow': LIGHT_THEME['shadow'],
+                        'textAlign': 'center',
+                        'transition': 'transform 0.3s ease, box-shadow 0.3s ease'
                     }),
-                    html.P("Monitoruj swoje wyniki i identyfikuj obszary wymagające poprawy", style={
-                        'color': LIGHT_THEME['placeholder'],
-                        'fontSize': '16px',
-                        'lineHeight': '1.5'
-                    })
-                ], style={
-                    'background': LIGHT_THEME['content_bg'],
-                    'padding': '32px',
-                    'borderRadius': LIGHT_THEME['radius'],
-                    'boxShadow': LIGHT_THEME['shadow'],
-                    'textAlign': 'center',
-                    'flex': '1',
-                    'margin': '0 16px',
-                    'transition': 'transform 0.3s ease, box-shadow 0.3s ease'
-                }, className='task-card'),
-                
-                html.Div([
-                    html.Div("🎯", style={'fontSize': '48px', 'marginBottom': '16px'}),
-                    html.H3("Analizuj wyniki", style={
-                        'color': LIGHT_THEME['text'],
-                        'fontWeight': '700',
-                        'marginBottom': '12px'
+                    
+                    html.Div([
+                        html.Div("📊", style={'fontSize': '48px', 'marginBottom': '16px'}),
+                        html.H3("Śledź postępy", style={
+                            'color': LIGHT_THEME['text'],
+                            'fontWeight': '700',
+                            'marginBottom': '12px',
+                            'fontSize': 'clamp(18px, 2vw, 24px)'
+                        }),
+                        html.P("Monitoruj swoje wyniki i identyfikuj obszary wymagające poprawy", style={
+                            'color': LIGHT_THEME['placeholder'],
+                            'fontSize': 'clamp(14px, 1.5vw, 16px)',
+                            'lineHeight': '1.5'
+                        })
+                    ], className='card', style={
+                        'background': LIGHT_THEME['content_bg'],
+                        'padding': 'clamp(20px, 3vw, 32px)',
+                        'borderRadius': LIGHT_THEME['radius'],
+                        'boxShadow': LIGHT_THEME['shadow'],
+                        'textAlign': 'center',
+                        'transition': 'transform 0.3s ease, box-shadow 0.3s ease'
                     }),
-                    html.P("Wykorzystuj zaawansowane wykresy do analizy swoich mocnych i słabych stron", style={
-                        'color': LIGHT_THEME['placeholder'],
-                        'fontSize': '16px',
-                        'lineHeight': '1.5'
+                    
+                    html.Div([
+                        html.Div("🎯", style={'fontSize': '48px', 'marginBottom': '16px'}),
+                        html.H3("Analizuj wyniki", style={
+                            'color': LIGHT_THEME['text'],
+                            'fontWeight': '700',
+                            'marginBottom': '12px',
+                            'fontSize': 'clamp(18px, 2vw, 24px)'
+                        }),
+                        html.P("Wykorzystuj zaawansowane wykresy do analizy swoich mocnych i słabych stron", style={
+                            'color': LIGHT_THEME['placeholder'],
+                            'fontSize': 'clamp(14px, 1.5vw, 16px)',
+                            'lineHeight': '1.5'
+                        })
+                    ], className='card', style={
+                        'background': LIGHT_THEME['content_bg'],
+                        'padding': 'clamp(20px, 3vw, 32px)',
+                        'borderRadius': LIGHT_THEME['radius'],
+                        'boxShadow': LIGHT_THEME['shadow'],
+                        'textAlign': 'center',
+                        'transition': 'transform 0.3s ease, box-shadow 0.3s ease'
                     })
-                ], style={
-                    'background': LIGHT_THEME['content_bg'],
-                    'padding': '32px',
-                    'borderRadius': LIGHT_THEME['radius'],
-                    'boxShadow': LIGHT_THEME['shadow'],
-                    'textAlign': 'center',
-                    'flex': '1',
-                    'margin': '0 16px',
-                    'transition': 'transform 0.3s ease, box-shadow 0.3s ease'
-                }, className='task-card')
+                ], className='card-container', style={
+                    'marginTop': 'clamp(30px, 5vw, 60px)',
+                    'gap': 'clamp(10px, 2vw, 20px)'
+                })
             ], style={
-                'display': 'flex',
-                'marginTop': '60px',
-                'gap': '20px',
-                'flexWrap': 'wrap'
+                'background': LIGHT_THEME['content_bg'],
+                'borderRadius': LIGHT_THEME['radius_large'],
+                'boxShadow': LIGHT_THEME['shadow_strong'],
+                'padding': 'clamp(30px, 5vw, 60px) clamp(20px, 3vw, 40px)',
+                'maxWidth': '1200px',
+                'margin': 'clamp(30px, 5vw, 60px) auto 0 auto',
+                'backdropFilter': 'blur(10px)'
             })
-        ], style={
-            'background': LIGHT_THEME['content_bg'],
-            'borderRadius': LIGHT_THEME['radius_large'],
-            'boxShadow': LIGHT_THEME['shadow_strong'],
-            'padding': '60px 40px',
-            'maxWidth': '1200px',
-            'margin': '60px auto 0 auto',
-            'backdropFilter': 'blur(10px)'
+        ], className='container', style={
+            'padding': 'clamp(20px, 3vw, 40px)',
+            'minHeight': '100vh'
         })
-    ], style={
-        'padding': '40px',
-        'minHeight': '100vh'
-    })
+    ])
 
 def get_math_tasks_layout():
     return html.Div([
@@ -262,12 +260,12 @@ def get_math_tasks_layout():
                 'color': LIGHT_THEME['text'], 
                 'fontWeight': '800', 
                 'marginBottom': '16px',
-                'fontSize': '42px'
+                'fontSize': 'clamp(28px, 4vw, 42px)'
             }),
             html.P("Organizuj swoje zadania maturalne i śledź postępy w nauce", style={
                 'textAlign': 'center',
                 'color': LIGHT_THEME['placeholder'],
-                'fontSize': '18px',
+                'fontSize': 'clamp(14px, 2vw, 18px)',
                 'fontWeight': '500',
                 'marginBottom': '40px'
             })
@@ -309,18 +307,18 @@ def get_math_tasks_layout():
                     'marginBottom': '24px', 
                     'fontWeight': '700',
                     'color': LIGHT_THEME['text'],
-                    'fontSize': '24px'
+                    'fontSize': 'clamp(20px, 2.5vw, 24px)'
                 }),
                 html.Div(id='math-tasks-list', style={'marginTop': '20px'})
             ], style={
                 'background': LIGHT_THEME['content_bg'], 
                 'borderRadius': LIGHT_THEME['radius_large'], 
                 'boxShadow': LIGHT_THEME['shadow'], 
-                'padding': '40px', 
+                'padding': 'clamp(20px, 3vw, 40px)', 
                 'backdropFilter': 'blur(10px)'
             })
         ], style={'maxWidth': '1200px', 'margin': '0 auto'})
-    ], style={'padding': '40px'})
+    ], style={'padding': 'clamp(20px, 3vw, 40px)'})
 
 def get_math_tasks_list(tasks):
     import datetime
@@ -331,16 +329,17 @@ def get_math_tasks_list(tasks):
                 'textAlign': 'center',
                 'color': LIGHT_THEME['text'],
                 'fontWeight': '700',
-                'marginBottom': '12px'
+                'marginBottom': '12px',
+                'fontSize': 'clamp(20px, 2.5vw, 24px)'
             }),
             html.P("Dodaj nowy zestaw zadań, aby rozpocząć naukę!", style={
                 'color': LIGHT_THEME['placeholder'], 
                 'textAlign': 'center', 
-                'fontSize': '18px',
+                'fontSize': 'clamp(14px, 2vw, 18px)',
                 'fontWeight': '500'
             })
         ], style={
-            'padding': '60px 40px',
+            'padding': 'clamp(30px, 5vw, 60px) clamp(20px, 3vw, 40px)',
             'textAlign': 'center',
             'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
             'borderRadius': LIGHT_THEME['radius'],
@@ -384,7 +383,7 @@ def get_math_tasks_list(tasks):
                 'padding': '4px 12px',
                 'borderRadius': '20px',
                 'margin': '0 6px 6px 0',
-                'fontSize': '13px',
+                'fontSize': 'clamp(11px, 1.2vw, 13px)',
                 'fontWeight': '600',
                 'border': '1px solid #c7d2fe'
             }) for tag in task['tags']]
@@ -398,11 +397,12 @@ def get_math_tasks_list(tasks):
                     'whiteSpace': 'pre-line', 
                     'marginTop': '12px',
                     'color': LIGHT_THEME['text'],
-                    'lineHeight': '1.6'
+                    'lineHeight': '1.6',
+                    'fontSize': 'clamp(13px, 1.5vw, 15px)'
                 }),
                 style={
                     'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
-                    'padding': '16px',
+                    'padding': 'clamp(12px, 2vw, 16px)',
                     'borderRadius': LIGHT_THEME['radius'],
                     'marginTop': '12px',
                     'display': 'block' if task['content'] else 'none',
@@ -416,13 +416,13 @@ def get_math_tasks_list(tasks):
                         html.Div([
                             html.Div([
                                 html.Strong(f"📝 {task['name']}", style={
-                                    'fontSize': '18px',
+                                    'fontSize': 'clamp(16px, 2vw, 18px)',
                                     'color': LIGHT_THEME['text'],
                                     'fontWeight': '700'
                                 }),
                                 html.Span(f" (Zadanie #{task['number']})", style={
                                     'color': LIGHT_THEME['placeholder'],
-                                    'fontSize': '14px',
+                                    'fontSize': 'clamp(12px, 1.5vw, 14px)',
                                     'fontWeight': '500',
                                     'marginLeft': '8px'
                                 })
@@ -438,7 +438,7 @@ def get_math_tasks_list(tasks):
                                 }),
                                 html.Span(status_text, style={
                                     'color': status_color,
-                                    'fontSize': '16px',
+                                    'fontSize': 'clamp(14px, 1.5vw, 16px)',
                                     'fontWeight': '700'
                                 })
                             ], style={
@@ -454,7 +454,9 @@ def get_math_tasks_list(tasks):
                         'display': 'flex', 
                         'alignItems': 'flex-start', 
                         'justifyContent': 'space-between',
-                        'marginBottom': '16px'
+                        'marginBottom': '16px',
+                        'flexWrap': 'wrap',
+                        'gap': '12px'
                     }),
                     html.Div([
                         html.Button([
@@ -464,7 +466,7 @@ def get_math_tasks_list(tasks):
                             id={'type': 'edit-btn', 'index': task['id']},
                             n_clicks=0,
                             style={
-                                'padding': '10px 20px',
+                                'padding': 'clamp(8px, 1.5vw, 10px) clamp(16px, 2vw, 20px)',
                                 'background': LIGHT_THEME['gradient_warning'],
                                 'color': 'white',
                                 'border': 'none',
@@ -472,7 +474,7 @@ def get_math_tasks_list(tasks):
                                 'cursor': 'pointer',
                                 'marginRight': '12px',
                                 'fontWeight': '600',
-                                'fontSize': '14px',
+                                'fontSize': 'clamp(12px, 1.5vw, 14px)',
                                 'boxShadow': LIGHT_THEME['shadow'],
                                 'transition': 'all 0.3s ease'
                             }
@@ -484,25 +486,27 @@ def get_math_tasks_list(tasks):
                             id={'type': 'delete-btn', 'index': task['id']},
                             n_clicks=0,
                             style={
-                                'padding': '10px 20px',
+                                'padding': 'clamp(8px, 1.5vw, 10px) clamp(16px, 2vw, 20px)',
                                 'background': LIGHT_THEME['button_danger'],
                                 'color': 'white',
                                 'border': 'none',
                                 'borderRadius': LIGHT_THEME['radius'],
                                 'cursor': 'pointer',
                                 'fontWeight': '600',
-                                'fontSize': '14px',
+                                'fontSize': 'clamp(12px, 1.5vw, 14px)',
                                 'boxShadow': LIGHT_THEME['shadow'],
                                 'transition': 'all 0.3s ease'
                             }
                         )
                     ], style={
                         'display': 'flex', 
-                        'justifyContent': 'flex-end'
+                        'justifyContent': 'flex-end',
+                        'flexWrap': 'wrap',
+                        'gap': '8px'
                     })
                 ], style={
                     'background': 'rgba(255, 255, 255, 0.9)',
-                    'padding': '24px',
+                    'padding': 'clamp(16px, 2.5vw, 24px)',
                     'margin': '16px 0',
                     'borderRadius': LIGHT_THEME['radius'],
                     'border': f"1px solid {LIGHT_THEME['border']}",
@@ -512,7 +516,7 @@ def get_math_tasks_list(tasks):
                 }, className='task-item')
             )
         
-        # Set header with enhanced styling
+        # Set header with enhanced styling and responsiveness
         set_header = html.Div([
             html.Div([
                 html.Div([
@@ -523,27 +527,27 @@ def get_math_tasks_list(tasks):
                         'marginBottom': '8px', 
                         'fontWeight': '800',
                         'color': 'white',
-                        'fontSize': '22px'
+                        'fontSize': 'clamp(18px, 2.5vw, 22px)'
                     }),
                     html.Div([
                         html.Span(f"📊 {total_tasks} zadań", style={
-                            'fontSize': '14px',
+                            'fontSize': 'clamp(12px, 1.5vw, 14px)',
                             'color': 'rgba(255,255,255,0.9)',
                             'marginRight': '16px',
                             'fontWeight': '600'
                         }),
                         html.Span(f"✅ {solved_tasks} rozwiązanych", style={
-                            'fontSize': '14px',
+                            'fontSize': 'clamp(12px, 1.5vw, 14px)',
                             'color': 'rgba(255,255,255,0.9)',
                             'marginRight': '16px',
                             'fontWeight': '600'
                         }),
                         html.Span(f"📅 {datetime.datetime.fromisoformat(set_data['tasks'][0]['created']).strftime('%d.%m.%Y %H:%M')}", style={
-                            'fontSize': '14px',
+                            'fontSize': 'clamp(11px, 1.3vw, 14px)',
                             'color': 'rgba(255,255,255,0.8)',
                             'fontWeight': '500'
                         })
-                    ])
+                    ], style={'flexWrap': 'wrap', 'gap': '8px', 'display': 'flex'})
                 ], style={'flex': '1'}),
                 
                 # Right side with dropdown menu and progress
@@ -571,7 +575,7 @@ def get_math_tasks_list(tasks):
                             }
                         )
                     ], style={
-                        'position': 'relative',  # Ważne dla pozycjonowania menu
+                        'position': 'relative',
                         'zIndex': '1'
                     }),
                     
@@ -579,14 +583,14 @@ def get_math_tasks_list(tasks):
                     html.Div([
                         html.Div([
                             html.Span(f"{completion_rate*100:.0f}%", style={
-                                'fontSize': '24px',
+                                'fontSize': 'clamp(20px, 2.5vw, 24px)',
                                 'fontWeight': '800',
                                 'color': LIGHT_THEME['success'] if completion_rate > 0.7 else LIGHT_THEME['warning'] if completion_rate > 0.3 else LIGHT_THEME['error'],
                                 'marginBottom': '4px',
                                 'display': 'block'
                             }),
                             html.Div(style={
-                                'width': '80px',
+                                'width': 'clamp(60px, 8vw, 80px)',
                                 'height': '8px',
                                 'background': 'rgba(255,255,255,0.3)',
                                 'borderRadius': '4px',
@@ -602,11 +606,11 @@ def get_math_tasks_list(tasks):
                             ])
                         ], style={'textAlign': 'center'})
                     ])
-                ], style={'display': 'flex', 'alignItems': 'center'})
-            ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between'})
+                ], style={'display': 'flex', 'alignItems': 'center', 'flexWrap': 'wrap', 'gap': '8px'})
+            ], style={'display': 'flex', 'alignItems': 'center', 'justifyContent': 'space-between', 'flexWrap': 'wrap', 'gap': '16px'})
         ], style={
             'margin': '32px 0 20px 0',
-            'padding': '24px',
+            'padding': 'clamp(16px, 2.5vw, 24px)',
             'background': LIGHT_THEME['gradient_primary'],
             'color': 'white',
             'borderRadius': LIGHT_THEME['radius'],
@@ -630,7 +634,7 @@ def get_math_tasks_list(tasks):
                     'borderRadius': '8px',
                     'cursor': 'pointer',
                     'fontWeight': '600',
-                    'fontSize': '14px',
+                    'fontSize': 'clamp(12px, 1.5vw, 14px)',
                     'marginBottom': '8px',
                     'transition': 'all 0.3s ease',
                     'textAlign': 'left'
@@ -651,7 +655,7 @@ def get_math_tasks_list(tasks):
                     'borderRadius': '8px',
                     'cursor': 'pointer',
                     'fontWeight': '600',
-                    'fontSize': '14px',
+                    'fontSize': 'clamp(12px, 1.5vw, 14px)',
                     'marginBottom': '8px',
                     'transition': 'all 0.3s ease',
                     'textAlign': 'left'
@@ -672,7 +676,7 @@ def get_math_tasks_list(tasks):
                     'borderRadius': '8px',
                     'cursor': 'pointer',
                     'fontWeight': '600',
-                    'fontSize': '14px',
+                    'fontSize': 'clamp(12px, 1.5vw, 14px)',
                     'transition': 'all 0.3s ease',
                     'textAlign': 'left'
                 }
@@ -681,13 +685,13 @@ def get_math_tasks_list(tasks):
             id={'type': 'set-dropdown-menu', 'index': set_id},
             style={
                 'position': 'absolute',
-                'top': '50px',  # Bezpośrednio pod przyciskiem (40px wysokość + 10px margines)
-                'right': '100px',  # Wyrównane z przyciskiem (80px szerokość progress + 20px margines)
+                'top': '50px',
+                'right': 'clamp(80px, 10vw, 100px)',
                 'background': 'white',
                 'borderRadius': '12px',
                 'boxShadow': '0 8px 32px rgba(0,0,0,0.25)',
                 'padding': '16px',
-                'minWidth': '200px',
+                'minWidth': 'clamp(180px, 20vw, 200px)',
                 'zIndex': '9999',
                 'border': '1px solid rgba(0,0,0,0.1)',
                 'display': 'none'
@@ -696,11 +700,11 @@ def get_math_tasks_list(tasks):
         
         set_sections.append(html.Div([
             set_header,
-            dropdown_menu,  # Menu tutaj
-            html.Div(task_rows)  # Zadania w osobnym div
+            dropdown_menu,
+            html.Div(task_rows)
         ], style={
             'marginBottom': '40px',
-            'position': 'relative'  # Ważne dla absolute positioning
+            'position': 'relative'
         }))
     
     return html.Div(set_sections)
@@ -723,7 +727,7 @@ def get_stats_layout(subject="matematyka"):
                 'marginBottom': '24px', 
                 'fontWeight': '800',
                 'color': LIGHT_THEME['text'],
-                'fontSize': '26px'
+                'fontSize': 'clamp(22px, 3vw, 26px)'
             }),
             html.Div([
                 html.Div([
@@ -735,13 +739,13 @@ def get_stats_layout(subject="matematyka"):
                             'marginBottom': '12px',
                             'fontWeight': '700',
                             'color': LIGHT_THEME['text'],
-                            'fontSize': '20px'
+                            'fontSize': 'clamp(18px, 2.5vw, 20px)'
                         }),
                         html.Div([
                             html.Span("📅", style={'marginRight': '6px'}),
                             f"{z['created_at'].strftime('%d.%m.%Y %H:%M') if hasattr(z['created_at'], 'strftime') else z['created_at']}"
                         ], style={
-                            'fontSize': '14px',
+                            'fontSize': 'clamp(12px, 1.5vw, 14px)',
                             'color': LIGHT_THEME['placeholder'],
                             'marginBottom': '16px',
                             'fontWeight': '500'
@@ -751,30 +755,30 @@ def get_stats_layout(subject="matematyka"):
                                 html.Div([
                                     html.Strong(f"📝 {zad['nr_zadania']}. {zad['nazwa']}", style={
                                         'color': LIGHT_THEME['text'],
-                                        'fontSize': '16px'
+                                        'fontSize': 'clamp(14px, 1.8vw, 16px)'
                                     }),
                                     html.Div([
                                         html.Span("✅ Rozwiązane" if zad['solved'] else "❌ Nierozwiązane", style={
                                             'color': LIGHT_THEME['success'] if zad['solved'] else LIGHT_THEME['error'],
                                             'fontWeight': '600',
-                                            'fontSize': '14px',
+                                            'fontSize': 'clamp(12px, 1.5vw, 14px)',
                                             'marginLeft': '12px'
                                         })
                                     ]),
                                     html.Div([
                                         html.Span("🏷️ Tagi: ", style={
-                                            'fontSize': '13px',
+                                            'fontSize': 'clamp(11px, 1.3vw, 13px)',
                                             'color': LIGHT_THEME['text'],
                                             'fontWeight': '600'
                                         }),
                                         html.Span(', '.join(zad['tags']) if zad['tags'] else 'Brak tagów', style={
-                                            'fontSize': '13px',
+                                            'fontSize': 'clamp(11px, 1.3vw, 13px)',
                                             'color': LIGHT_THEME['placeholder']
                                         })
                                     ], style={'marginTop': '4px'}),
                                     html.Div([
                                         html.P(zad['tresc'] if zad['tresc'] else 'Brak treści', style={
-                                            'fontSize': '13px',
+                                            'fontSize': 'clamp(11px, 1.3vw, 13px)',
                                             'color': LIGHT_THEME['placeholder'],
                                             'fontStyle': 'italic' if not zad['tresc'] else 'normal',
                                             'margin': '8px 0 0 0',
@@ -782,7 +786,7 @@ def get_stats_layout(subject="matematyka"):
                                         })
                                     ])
                                 ], style={
-                                    'padding': '16px',
+                                    'padding': 'clamp(12px, 2vw, 16px)',
                                     'background': 'rgba(255, 255, 255, 0.7)',
                                     'borderRadius': LIGHT_THEME['radius'],
                                     'marginBottom': '12px',
@@ -795,19 +799,19 @@ def get_stats_layout(subject="matematyka"):
                             html.Div("📝", style={'fontSize': '48px', 'textAlign': 'center', 'marginBottom': '16px'}),
                             html.P("Brak zadań w zestawie", style={
                                 'color': LIGHT_THEME['placeholder'],
-                                'fontSize': '16px',
+                                'fontSize': 'clamp(14px, 1.8vw, 16px)',
                                 'textAlign': 'center',
                                 'fontStyle': 'italic'
                             })
                         ], style={
-                            'padding': '40px',
+                            'padding': 'clamp(30px, 4vw, 40px)',
                             'background': 'rgba(255, 255, 255, 0.5)',
                             'borderRadius': LIGHT_THEME['radius'],
                             'border': f"2px dashed {LIGHT_THEME['border']}"
                         })
                     ], style={
                         'background': 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
-                        'padding': '24px',
+                        'padding': 'clamp(16px, 2.5vw, 24px)',
                         'borderRadius': LIGHT_THEME['radius'],
                         'boxShadow': LIGHT_THEME['shadow'],
                         'marginBottom': '24px',
@@ -822,16 +826,17 @@ def get_stats_layout(subject="matematyka"):
                     'textAlign': 'center',
                     'color': LIGHT_THEME['text'],
                     'fontWeight': '700',
-                    'marginBottom': '12px'
+                    'marginBottom': '12px',
+                    'fontSize': 'clamp(20px, 2.5vw, 24px)'
                 }),
                 html.P(f"Nie masz jeszcze żadnych zestawów dla przedmiotu {subject}.", style={
                     'color': LIGHT_THEME['placeholder'],
                     'textAlign': 'center',
-                    'fontSize': '18px',
+                    'fontSize': 'clamp(16px, 2vw, 18px)',
                     'fontWeight': '500'
                 })
             ], style={
-                'padding': '60px 40px',
+                'padding': 'clamp(40px, 5vw, 60px) clamp(30px, 4vw, 40px)',
                 'textAlign': 'center',
                 'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
                 'borderRadius': LIGHT_THEME['radius'],
@@ -841,7 +846,7 @@ def get_stats_layout(subject="matematyka"):
     ], style={
         'marginTop': '40px',
         'background': LIGHT_THEME['content_bg'],
-        'padding': '32px',
+        'padding': 'clamp(20px, 3vw, 32px)',
         'borderRadius': LIGHT_THEME['radius_large'],
         'boxShadow': LIGHT_THEME['shadow'],
         'backdropFilter': 'blur(10px)'
@@ -857,7 +862,7 @@ def get_stats_layout(subject="matematyka"):
                 'color': LIGHT_THEME['text'],
                 'fontWeight': '800',
                 'marginBottom': '16px',
-                'fontSize': '42px',
+                'fontSize': 'clamp(28px, 4vw, 42px)',
                 'background': subject_color,
                 'WebkitBackgroundClip': 'text',
                 'WebkitTextFillColor': 'transparent',
@@ -866,7 +871,7 @@ def get_stats_layout(subject="matematyka"):
             html.P(f"Analizuj swoje wyniki i postępy w nauce {subject}", style={
                 'textAlign': 'center',
                 'color': LIGHT_THEME['placeholder'],
-                'fontSize': '18px',
+                'fontSize': 'clamp(16px, 2vw, 18px)',
                 'fontWeight': '500',
                 'marginBottom': '40px'
             })
@@ -889,13 +894,14 @@ def get_stats_layout(subject="matematyka"):
                 'background': LIGHT_THEME['content_bg'],
                 'borderRadius': LIGHT_THEME['radius_large'],
                 'boxShadow': LIGHT_THEME['shadow_strong'],
-                'padding': '40px',
+                'padding': 'clamp(20px, 3vw, 40px)',
                 'backdropFilter': 'blur(10px)'
             })
         ], style={'maxWidth': '1200px', 'margin': '0 auto', 'marginBottom': '40px'}),
         
         zestawy_div
-    ], style={'padding': '40px'})
+    ], style={'padding': 'clamp(20px, 3vw, 40px)'})
 
 def get_stats_layout_it():
     return get_stats_layout(subject="informatyka")
+
