@@ -267,25 +267,6 @@ document.addEventListener('click', function(event) {
         });
     }
 });
-
-// ESC key handler
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        // Update keyboard-listener store
-        const store = document.getElementById('keyboard-listener');
-        if (store) {
-            // Trigger callback by updating store data
-            const currentTime = Date.now();
-            store.setAttribute('data-value', JSON.stringify({escape: currentTime}));
-            
-            // Dispatch custom event to trigger Dash callback
-            const customEvent = new CustomEvent('dash-store-update', {
-                detail: {escape: currentTime}
-            });
-            document.dispatchEvent(customEvent);
-        }
-    }
-});
 </script>
     </body>
 </html>
@@ -293,8 +274,6 @@ document.addEventListener('keydown', function(event) {
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
-    dcc.Store(id='keyboard-listener', data={}),
-    html.Div(id='keyboard-events', style={'display': 'none'}),
     get_sidebar(),
     
     # Right side panel for adding tasks
@@ -309,8 +288,7 @@ app.layout = html.Div([
             ),
             # Side panel
             html.Div([
-
-                # Panel header - bez formatowania
+                # Panel header
                 html.Div([
                     html.Div([
                         html.H2([

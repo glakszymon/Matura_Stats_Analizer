@@ -11,41 +11,20 @@ def register_callbacks(app):
     from dash import callback_context
     from utils import fetch_all_zestawy, fetch_zadania_for_zestaw, fetch_all_zadania_with_tags
 
-    app.clientside_callback(
-        """
-        function(n_intervals) {
-            if (window.dash_clientside && window.dash_clientside.escape_pressed) {
-                window.dash_clientside.escape_pressed = false;
-                return Date.now();
-            }
-            return window.dash_props.no_update;
-        }
-        """,
-        Output('keyboard-listener', 'data'),
-        Input('keyboard-events', 'children')
-    )
-
     @app.callback(
         [Output({'type': 'set-dropdown-menu', 'index': ALL}, 'style')],
-        [Input({'type': 'toggle-set-menu', 'index': ALL}, 'n_clicks'),
-         Input('keyboard-listener', 'data')],
+        [Input({'type': 'toggle-set-menu', 'index': ALL}, 'n_clicks')],
         [State({'type': 'set-dropdown-menu', 'index': ALL}, 'style'),
          State({'type': 'toggle-set-menu', 'index': ALL}, 'id')],
         prevent_initial_call=True
     )
-    def handle_dropdown_menus(n_clicks_list, keyboard_data, current_styles, button_ids):
+    def handle_dropdown_menus(n_clicks_list, current_styles, button_ids):
         ctx = callback_context
         if not ctx.triggered:
             return [no_update]
         
         trigger = ctx.triggered[0]['prop_id']
         updated_styles = [style.copy() for style in current_styles]
-        
-        # Zamknij wszystkie menu na ESC
-        if 'keyboard-listener' in trigger:
-            for i, style in enumerate(updated_styles):
-                style['display'] = 'none'
-            return [updated_styles]
         
         # Toggle konkretnego menu
         if 'toggle-set-menu' in trigger:
@@ -502,7 +481,7 @@ def register_callbacks(app):
         
         db_id = edit_store['db_id']
         
-        # Update in database - BEZ IMPORTU!
+        # Update in database
         update_zadanie(db_id, name, content, tags, solved)
         
         # Update in store (for immediate UI update)
