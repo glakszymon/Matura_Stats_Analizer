@@ -547,11 +547,63 @@ def get_math_tasks_list(tasks):
                 ], style={'flex': '1'}),
                 html.Div([
                     html.Div([
-                        html.Span(f"{completion_rate*100:.0f}%", style={
-                            'fontSize': '24px',
-                            'fontWeight': '800',
-                            'color': LIGHT_THEME['success'] if completion_rate > 0.7 else LIGHT_THEME['warning'] if completion_rate > 0.3 else LIGHT_THEME['error']
-                        }),
+                        html.Button([
+                            html.Span("➕", style={'marginRight': '6px'}),
+                            "Dodaj zadanie"
+                        ],
+                            id={'type': 'add-task-to-set-btn', 'index': set_id},
+                            n_clicks=0,
+                            style={
+                                'padding': '8px 16px',
+                                'background': 'rgba(255,255,255,0.2)',
+                                'color': 'white',
+                                'border': '1px solid rgba(255,255,255,0.3)',
+                                'borderRadius': LIGHT_THEME['radius'],
+                                'cursor': 'pointer',
+                                'fontWeight': '600',
+                                'fontSize': '14px',
+                                'marginRight': '8px',
+                                'transition': 'all 0.3s ease'
+                            }
+                        ),
+                        html.Button([
+                            html.Span("✏️", style={'marginRight': '6px'}),
+                            "Edytuj zestaw"
+                        ],
+                            id={'type': 'edit-set-btn', 'index': set_id},
+                            n_clicks=0,
+                            style={
+                                'padding': '8px 16px',
+                                'background': 'rgba(255,255,255,0.2)',
+                                'color': 'white',
+                                'border': '1px solid rgba(255,255,255,0.3)',
+                                'borderRadius': LIGHT_THEME['radius'],
+                                'cursor': 'pointer',
+                                'fontWeight': '600',
+                                'fontSize': '14px',
+                                'marginRight': '8px',
+                                'transition': 'all 0.3s ease'
+                            }
+                        ),
+                        html.Button([
+                            html.Span("🗑️", style={'marginRight': '6px'}),
+                            "Usuń zestaw"
+                        ],
+                            id={'type': 'delete-set-btn', 'index': set_id},
+                            n_clicks=0,
+                            style={
+                                'padding': '8px 16px',
+                                'background': 'rgba(220, 53, 69, 0.8)',
+                                'color': 'white',
+                                'border': '1px solid rgba(220, 53, 69, 0.3)',
+                                'borderRadius': LIGHT_THEME['radius'],
+                                'cursor': 'pointer',
+                                'fontWeight': '600',
+                                'fontSize': '14px',
+                                'marginRight': '8px',
+                                'transition': 'all 0.3s ease'
+                            }
+                        ),
                         html.Div(style={
                             'width': '60px',
                             'height': '6px',

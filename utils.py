@@ -40,6 +40,45 @@ def insert_zadanie(id_zestawu, nr_zadania, nazwa, tresc, solved, tags):
     cur.close()
     conn.close()
 
+def update_zadanie(zadanie_id, nazwa, tresc, tags, solved):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE Zadanie 
+        SET nazwa = ?, tresc = ?, tags = ?, solved = ?
+        WHERE id = ?
+        """,
+        (nazwa, tresc, ",".join(tags), int(solved), zadanie_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def delete_zadanie(zadanie_id):
+    """Delete a task from the database"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM Zadanie WHERE id = ?", (zadanie_id,))
+    conn.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+    conn.close()
+    return rows_affected > 0
+
+def fetch_zadanie_by_id(zadanie_id):
+    """Fetch a single task by ID"""
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM Zadanie WHERE id = ?", (zadanie_id,))
+    zadanie = cur.fetchone()
+    if zadanie:
+        zadanie['tags'] = [t.strip() for t in zadanie.get('tags', '').split(',')] if zadanie.get('tags') else []
+        zadanie['solved'] = bool(zadanie['solved'])
+    cur.close()
+    conn.close()
+    return zadanie
+
 def fetch_all_zestawy():
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
@@ -92,6 +131,50 @@ def fetch_all_zadania_with_tags():
     cur.close()
     conn.close()
     return zadania
+
+def update_zestaw(zestaw_id, name, subject):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE zestaw_matura 
+        SET name = ?, subject = ?
+        WHERE id = ?
+        """,
+        (name, subject, zestaw_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def fetch_zestaw_by_id(zestaw_id):
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM zestaw_matura WHERE id = ?", (zestaw_id,))
+    zestaw = cur.fetchone()
+    cur.close()
+    conn.close()
+    return zestaw
+
+def get_next_task_number(zestaw_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT MAX(nr_zadania) FROM Zadanie WHERE id_zestawu = ?", (zestaw_id,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+    return (result[0] + 1) if result[0] else 1
+
+def delete_zestaw(zestaw_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # Najpierw usuń wszystkie zadania z zestawu
+    cur.execute("DELETE FROM Zadanie WHERE id_zestawu = ?", (zestaw_id,))
+    # Potem usuń sam zestaw
+    cur.execute("DELETE FROM zestaw_matura WHERE id = ?", (zestaw_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # utils.py
 from theme import LIGHT_THEME

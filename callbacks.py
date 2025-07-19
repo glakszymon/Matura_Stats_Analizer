@@ -3,7 +3,7 @@ from dash import dcc, html, Input, Output, State, ALL
 from dash import callback, no_update
 import uuid
 import datetime
-from utils import TAGS, get_tags_for_subject, calculate_tag_stats, create_radar_chart, create_stats_summary
+from utils import TAGS, get_tags_for_subject, calculate_tag_stats, create_radar_chart, create_stats_summary, update_zadanie, delete_zadanie, fetch_zadanie_by_id, update_zestaw, fetch_zestaw_by_id, get_next_task_number, delete_zestaw, insert_zadanie
 from theme import LIGHT_THEME
 
 # --- CALLBACKS ---
@@ -71,6 +71,51 @@ def register_callbacks(app):
         if 'edit-btn' in trigger and any(edit_clicks):
             return {'display': 'block'}
         return {'display': 'none'}
+
+    # Delete modal visibility and data
+    @app.callback(
+        [Output('delete-modal', 'style'),
+         Output('delete-task-name', 'children'),
+         Output('delete-task-tags', 'children'),
+         Output('delete-task-status', 'children'),
+         Output('delete-task-store', 'data')],
+        [Input({'type': 'delete-btn', 'index': ALL}, 'n_clicks'),
+         Input('cancel-delete-button', 'n_clicks'),
+         Input('confirm-delete-button', 'n_clicks')],
+        [State({'type': 'delete-btn', 'index': ALL}, 'id')],
+        prevent_initial_call=True
+    )
+    def toggle_delete_modal(delete_clicks, cancel_clicks, confirm_clicks, delete_ids):
+        ctx = callback_context
+        if not ctx.triggered:
+            return no_update, no_update, no_update, no_update, no_update
+        
+        trigger = ctx.triggered[0]['prop_id']
+        
+        if 'cancel-delete-button' in trigger or 'confirm-delete-button' in trigger:
+            return {'display': 'none'}, '', '', '', {}
+        
+        if 'delete-btn' in trigger and any(delete_clicks):
+            # Get the task ID from the button that was clicked
+            button_id = eval(trigger.split('.')[0])
+            task_id = button_id['index']
+            
+            # Fetch task details from database
+            task = fetch_zadanie_by_id(task_id)
+            if task:
+                task_name = task['nazwa'] or f"Zadanie {task['nr_zadania']}"
+                task_tags = ', '.join(task['tags']) if task['tags'] else 'Brak tagów'
+                task_status = "✅ Rozwiązane" if task['solved'] else "❌ Nierozwiązane"
+                
+                return (
+                    {'display': 'block'},
+                    task_name,
+                    task_tags,
+                    task_status,
+                    {'task_id': task_id, 'db_id': task['id']}
+                )
+        
+        return {'display': 'none'}, '', '', '', {}
 
     @app.callback(
         Output('task-set-form-container', 'children'),
@@ -360,19 +405,28 @@ def register_callbacks(app):
         if 'edit-btn' in trigger_id:
             button_id = eval(trigger_id.split('.')[0])
             task_id = button_id['index']
-            task_to_edit = next((task for task in tasks if task['id'] == task_id), None)
+            
+            # Fetch task from database instead of store
+            task_to_edit = fetch_zadanie_by_id(task_id)
             
             if task_to_edit:
-                subject = task_to_edit.get('subject', 'matematyka')
+                # Get subject from zestaw
+                zestawy = fetch_all_zestawy()
+                subject = 'matematyka'  # default
+                for zestaw in zestawy:
+                    if zestaw['id'] == task_to_edit['id_zestawu']:
+                        subject = zestaw.get('subject', 'matematyka')
+                        break
+                
                 tag_options = [{'label': tag.replace('_', ' '), 'value': tag} for tag in get_tags_for_subject(subject)]
                 return (
                     {'display': 'block'},
-                    task_to_edit['name'],
-                    task_to_edit['content'],
+                    task_to_edit['nazwa'],
+                    task_to_edit['tresc'],
                     task_to_edit['tags'],
                     tag_options,
                     task_to_edit['solved'],
-                    {'task_id': task_id}
+                    {'task_id': task_id, 'db_id': task_to_edit['id']}
                 )
         
         return no_update, no_update, no_update, no_update, no_update, no_update, no_update
@@ -391,9 +445,15 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def save_task_edit(n_clicks, name, content, tags, solved, edit_store, tasks):
-        if n_clicks == 0 or not edit_store or 'task_id' not in edit_store:
+        if n_clicks == 0 or not edit_store or 'db_id' not in edit_store:
             return no_update, no_update, no_update
         
+        db_id = edit_store['db_id']
+        
+        # Update in database - BEZ IMPORTU!
+        update_zadanie(db_id, name, content, tags, solved)
+        
+        # Update in store (for immediate UI update)
         task_id = edit_store['task_id']
         updated_tasks = []
         
@@ -410,23 +470,30 @@ def register_callbacks(app):
         
         return updated_tasks, {'display': 'none'}, {}
 
+    # Delete task with database operation
     @app.callback(
-        Output('math-tasks-store', 'data', allow_duplicate=True),
-        Input({'type': 'delete-btn', 'index': ALL}, 'n_clicks'),
-        [State({'type': 'delete-btn', 'index': ALL}, 'id'),
+        [Output('math-tasks-store', 'data', allow_duplicate=True),
+         Output('delete-modal', 'style', allow_duplicate=True),
+         Output('delete-task-store', 'data', allow_duplicate=True)],
+        Input('confirm-delete-button', 'n_clicks'),
+        [State('delete-task-store', 'data'),
          State('math-tasks-store', 'data')],
         prevent_initial_call=True
     )
-    def delete_task(delete_clicks, delete_ids, tasks):
-        ctx = callback_context
-        if not ctx.triggered:
-            return no_update
+    def confirm_delete_task(n_clicks, delete_store, tasks):
+        if n_clicks == 0 or not delete_store or 'db_id' not in delete_store:
+            return no_update, no_update, no_update
         
-        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        button_info = eval(button_id)
-        task_id = button_info['index']
+        db_id = delete_store['db_id']
+        task_id = delete_store['task_id']
         
-        return [task for task in tasks if task['id'] != task_id]
+        # Delete from database
+        delete_zadanie(db_id)
+        
+        # Remove from store (for immediate UI update)
+        updated_tasks = [task for task in tasks if task['id'] != task_id]
+        
+        return updated_tasks, {'display': 'none'}, {}
 
     @app.callback(
         Output('stats-graph-math', 'figure'),
@@ -489,3 +556,213 @@ def register_callbacks(app):
         fig = create_radar_chart(tag_stats, 'informatyka')
         summary = create_stats_summary(tag_stats, 'informatyka')
         return fig, summary
+
+    # Edit set modal visibility
+    @app.callback(
+        [Output('edit-set-modal', 'style'),
+         Output('edit-set-name', 'value'),
+         Output('edit-set-subject', 'value'),
+         Output('edit-set-store', 'data')],
+        [Input({'type': 'edit-set-btn', 'index': ALL}, 'n_clicks'),
+         Input('cancel-edit-set-button', 'n_clicks'),
+         Input('save-edit-set-button', 'n_clicks')],
+        [State({'type': 'edit-set-btn', 'index': ALL}, 'id')],
+        prevent_initial_call=True
+    )
+    def handle_edit_set_modal(edit_clicks, cancel_clicks, save_clicks, edit_ids):
+        ctx = callback_context
+        if not ctx.triggered:
+            return no_update, no_update, no_update, no_update
+        
+        trigger_id = ctx.triggered[0]['prop_id']
+        
+        if 'cancel-edit-set-button' in trigger_id or 'save-edit-set-button' in trigger_id:
+            return {'display': 'none'}, '', 'matematyka', {}
+        
+        if 'edit-set-btn' in trigger_id and any(edit_clicks):
+            button_id = eval(trigger_id.split('.')[0])
+            set_id = button_id['index']
+            
+            # Fetch set from database
+            zestaw = fetch_zestaw_by_id(set_id)
+            
+            if zestaw:
+                return (
+                    {'display': 'block'},
+                    zestaw['name'],
+                    zestaw.get('subject', 'matematyka'),
+                    {'set_id': set_id}
+                )
+        
+        return no_update, no_update, no_update, no_update
+
+    # Save set edit
+    @app.callback(
+        [Output('math-tasks-store', 'data', allow_duplicate=True),
+         Output('edit-set-modal', 'style', allow_duplicate=True),
+         Output('edit-set-store', 'data', allow_duplicate=True)],
+        Input('save-edit-set-button', 'n_clicks'),
+        [State('edit-set-name', 'value'),
+         State('edit-set-subject', 'value'),
+         State('edit-set-store', 'data'),
+         State('math-tasks-store', 'data')],
+        prevent_initial_call=True
+    )
+    def save_set_edit(n_clicks, name, subject, edit_store, tasks):
+        if n_clicks == 0 or not edit_store or 'set_id' not in edit_store:
+            return no_update, no_update, no_update
+        
+        set_id = edit_store['set_id']
+        
+        # Update in database
+        update_zestaw(set_id, name, subject)
+        
+        # Update tasks in store
+        updated_tasks = []
+        for task in tasks:
+            if task.get('set_id') == set_id:
+                updated_task = task.copy()
+                updated_task['set_name'] = name
+                updated_task['subject'] = subject
+                updated_tasks.append(updated_task)
+            else:
+                updated_tasks.append(task)
+        
+        return updated_tasks, {'display': 'none'}, {}
+
+    # Add task to set modal visibility and setup
+    @app.callback(
+        [Output('add-task-to-set-modal', 'style'),
+         Output('add-task-set-name-display', 'children'),
+         Output('add-task-tags', 'options'),
+         Output('add-task-to-set-store', 'data'),
+         Output('add-task-name', 'value'),
+         Output('add-task-content', 'value'),
+         Output('add-task-tags', 'value'),
+         Output('add-task-solved', 'value')],
+        [Input({'type': 'add-task-to-set-btn', 'index': ALL}, 'n_clicks'),
+         Input('cancel-add-task-button', 'n_clicks'),
+         Input('save-add-task-button', 'n_clicks')],
+        [State({'type': 'add-task-to-set-btn', 'index': ALL}, 'id')],
+        prevent_initial_call=True
+    )
+    def handle_add_task_to_set_modal(add_clicks, cancel_clicks, save_clicks, add_ids):
+        ctx = callback_context
+        if not ctx.triggered:
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        
+        trigger_id = ctx.triggered[0]['prop_id']
+        
+        if 'cancel-add-task-button' in trigger_id or 'save-add-task-button' in trigger_id:
+            return {'display': 'none'}, '', [], {}, '', '', [], False
+        
+        if 'add-task-to-set-btn' in trigger_id and any(add_clicks):
+            button_id = eval(trigger_id.split('.')[0])
+            set_id = button_id['index']
+            
+            # Fetch set info
+            zestaw = fetch_zestaw_by_id(set_id)
+            
+            if zestaw:
+                subject = zestaw.get('subject', 'matematyka')
+                tag_options = [{'label': tag.replace('_', ' '), 'value': tag} for tag in get_tags_for_subject(subject)]
+                next_number = get_next_task_number(set_id)
+                
+                return (
+                    {'display': 'block'},
+                    f"📚 Zestaw: {zestaw['name']} | 🔢 Numer zadania: {next_number}",
+                    tag_options,
+                    {'set_id': set_id, 'set_name': zestaw['name'], 'subject': subject, 'next_number': next_number},
+                    '',
+                    '',
+                    [],
+                    False
+                )
+        
+        return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
+
+    # Save new task to existing set
+    @app.callback(
+        [Output('math-tasks-store', 'data', allow_duplicate=True),
+         Output('add-task-to-set-modal', 'style', allow_duplicate=True),
+         Output('add-task-to-set-store', 'data', allow_duplicate=True),
+         Output('add-task-name', 'value', allow_duplicate=True),
+         Output('add-task-content', 'value', allow_duplicate=True),
+         Output('add-task-tags', 'value', allow_duplicate=True),
+         Output('add-task-solved', 'value', allow_duplicate=True)],
+        Input('save-add-task-button', 'n_clicks'),
+        [State('add-task-name', 'value'),
+         State('add-task-content', 'value'),
+         State('add-task-tags', 'value'),
+         State('add-task-solved', 'value'),
+         State('add-task-to-set-store', 'data'),
+         State('math-tasks-store', 'data')],
+        prevent_initial_call=True
+    )
+    def save_new_task_to_set(n_clicks, name, content, tags, solved, add_store, tasks):
+        if n_clicks == 0 or not add_store or 'set_id' not in add_store:
+            return no_update, no_update, no_update, no_update, no_update, no_update, no_update
+        
+        set_id = add_store['set_id']
+        set_name = add_store['set_name']
+        subject = add_store['subject']
+        task_number = add_store['next_number']
+        
+        # Default values
+        task_name = name if name else f"Zadanie {task_number}"
+        task_content = content if content else ""
+        task_tags = tags if tags else []
+        task_solved = solved if solved is not None else False
+        
+        # Insert into database
+        insert_zadanie(set_id, task_number, task_name, task_content, task_solved, task_tags)
+        
+        # Create new task for store
+        new_task = {
+            'id': str(uuid.uuid4()),
+            'number': task_number,
+            'name': task_name,
+            'content': task_content,
+            'tags': task_tags,
+            'solved': task_solved,
+            'created': datetime.datetime.now().isoformat(),
+            'set_id': set_id,
+            'set_name': set_name,
+            'subject': subject
+        }
+        
+        # Add to existing tasks
+        updated_tasks = tasks + [new_task]
+        
+        return (
+            updated_tasks,
+            {'display': 'none'},
+            {},
+            '',
+            '',
+            [],
+            False
+        )
+
+    @app.callback(
+        Output('math-tasks-store', 'data', allow_duplicate=True),
+        Input({'type': 'delete-set-btn', 'index': ALL}, 'n_clicks'),
+        [State({'type': 'delete-set-btn', 'index': ALL}, 'id'),
+         State('math-tasks-store', 'data')],
+        prevent_initial_call=True
+    )
+    def delete_task_set(delete_clicks, delete_ids, tasks):
+        ctx = callback_context
+        if not ctx.triggered or not any(delete_clicks):
+            return no_update
+        
+        button_id = eval(ctx.triggered[0]['prop_id'].split('.')[0])
+        set_id = button_id['index']
+        
+        # Delete from database
+        delete_zestaw(set_id)
+        
+        # Remove from store
+        updated_tasks = [task for task in tasks if task.get('set_id') != set_id]
+        
+        return updated_tasks

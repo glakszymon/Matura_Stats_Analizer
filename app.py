@@ -204,6 +204,16 @@ app.index_string = '''
                 height: calc(100vh - 100px);
                 overflow-y: auto;
             }
+            
+            .add-task-btn:hover {
+                background: rgba(255,255,255,0.3) !important;
+                transform: translateY(-2px);
+            }
+
+            .edit-set-btn:hover {
+                background: rgba(255,255,255,0.3) !important;
+                transform: translateY(-2px);
+            }
         </style>
     </head>
     <body>
@@ -581,6 +591,405 @@ app.layout = html.Div([
         style={'display': 'none'}
     ),
     
+    # Edit set modal
+    html.Div(
+        id='edit-set-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3("✏️ Edytuj zestaw", style={
+                            'marginBottom': '24px',
+                            'fontWeight': '800',
+                            'color': LIGHT_THEME['text'],
+                            'fontSize': '24px',
+                            'textAlign': 'center'
+                        }),
+                        html.Div(style={
+                            'height': '3px',
+                            'background': LIGHT_THEME['warning'],
+                            'borderRadius': '2px',
+                            'marginBottom': '24px'
+                        })
+                    ]),
+                    
+                    html.Label("📝 Nazwa zestawu:", style={
+                        'display': 'block',
+                        'marginBottom': '8px',
+                        'fontWeight': '700',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '16px'
+                    }),
+                    dcc.Input(
+                        id='edit-set-name',
+                        type='text',
+                        style={
+                            'width': '100%',
+                            'padding': '14px',
+                            'border': f"2px solid {LIGHT_THEME['border']}",
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'fontSize': '16px',
+                            'marginBottom': '20px',
+                            'background': LIGHT_THEME['input_bg'],
+                            'fontWeight': '500'
+                        }
+                    ),
+                    
+                    html.Label("📚 Przedmiot:", style={
+                        'display': 'block',
+                        'marginBottom': '8px',
+                        'fontWeight': '700',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '16px'
+                    }),
+                    dcc.Dropdown(
+                        id='edit-set-subject',
+                        options=[
+                            {'label': '📊 Matematyka', 'value': 'matematyka'},
+                            {'label': '💻 Informatyka', 'value': 'informatyka'}
+                        ],
+                        style={
+                            'width': '100%',
+                            'marginBottom': '24px',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'fontSize': '16px'
+                        }
+                    ),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("💾", style={'marginRight': '8px'}),
+                            'Zapisz zmiany'
+                        ],
+                        id='save-edit-set-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['success'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginRight': '16px'
+                        }),
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Anuluj'
+                        ],
+                        id='cancel-edit-set-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center'})
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '500px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
+    
+    # Delete confirmation modal
+    html.Div(
+        id='delete-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.Div("⚠️", style={
+                            'fontSize': '64px',
+                            'textAlign': 'center',
+                            'marginBottom': '20px',
+                            'color': LIGHT_THEME['error']
+                        }),
+                        html.H3("Czy na pewno chcesz usunąć to zadanie?", style={
+                            'marginBottom': '16px',
+                            'fontWeight': '800',
+                            'color': LIGHT_THEME['text'],
+                            'fontSize': '24px',
+                            'textAlign': 'center'
+                        }),
+                        html.Div(style={
+                            'height': '3px',
+                            'background': LIGHT_THEME['error'],
+                            'borderRadius': '2px',
+                            'marginBottom': '24px'
+                        })
+                    ]),
+                    
+                    html.Div([
+                        html.Div([
+                            html.Strong("📝 Nazwa: ", style={'color': LIGHT_THEME['text']}),
+                            html.Span(id='delete-task-name', style={'color': LIGHT_THEME['placeholder']})
+                        ], style={'marginBottom': '12px', 'fontSize': '16px'}),
+                        html.Div([
+                            html.Strong("🏷️ Tagi: ", style={'color': LIGHT_THEME['text']}),
+                            html.Span(id='delete-task-tags', style={'color': LIGHT_THEME['placeholder']})
+                        ], style={'marginBottom': '12px', 'fontSize': '16px'}),
+                        html.Div([
+                            html.Strong("✅ Status: ", style={'color': LIGHT_THEME['text']}),
+                            html.Span(id='delete-task-status', style={'color': LIGHT_THEME['placeholder']})
+                        ], style={'marginBottom': '24px', 'fontSize': '16px'})
+                    ], style={
+                        'background': 'linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%)',
+                        'padding': '20px',
+                        'borderRadius': LIGHT_THEME['radius'],
+                        'border': f"2px solid {LIGHT_THEME['error']}20",
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.P("Ta operacja jest nieodwracalna!", style={
+                        'textAlign': 'center',
+                        'color': LIGHT_THEME['error'],
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("🗑️", style={'marginRight': '8px'}),
+                            'Tak, usuń zadanie'
+                        ],
+                        id='confirm-delete-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['error'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginRight': '16px'
+                        }),
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Anuluj'
+                        ],
+                        id='cancel-delete-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center'})
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '500px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow_strong'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
+    
+    # Add task to set modal
+    html.Div(
+        id='add-task-to-set-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3("➕ Dodaj zadanie do zestawu", style={
+                            'marginBottom': '16px',
+                            'fontWeight': '800',
+                            'color': LIGHT_THEME['text'],
+                            'fontSize': '24px',
+                            'textAlign': 'center'
+                        }),
+                        html.P(id='add-task-set-name-display', style={
+                            'textAlign': 'center',
+                            'color': LIGHT_THEME['placeholder'],
+                            'fontSize': '16px',
+                            'marginBottom': '24px',
+                            'fontWeight': '500'
+                        }),
+                        html.Div(style={
+                            'height': '3px',
+                            'background': LIGHT_THEME['gradient_primary'],
+                            'borderRadius': '2px',
+                            'marginBottom': '24px'
+                        })
+                    ]),
+                    
+                    html.Label("📝 Nazwa zadania:", style={
+                        'display': 'block',
+                        'marginBottom': '8px',
+                        'fontWeight': '700',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '16px'
+                    }),
+                    dcc.Input(
+                        id='add-task-name',
+                        type='text',
+                        placeholder='Nazwa zadania...',
+                        style={
+                            'width': '100%',
+                            'padding': '14px',
+                            'border': f"2px solid {LIGHT_THEME['border']}",
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'fontSize': '16px',
+                            'marginBottom': '20px',
+                            'background': LIGHT_THEME['input_bg'],
+                            'fontWeight': '500'
+                        }
+                    ),
+                    
+                    html.Label("📄 Treść zadania:", style={
+                        'display': 'block',
+                        'marginBottom': '8px',
+                        'fontWeight': '700',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '16px'
+                    }),
+                    dcc.Textarea(
+                        id='add-task-content',
+                        placeholder='Treść zadania...',
+                        style={
+                            'width': '100%',
+                            'padding': '14px',
+                            'border': f"2px solid {LIGHT_THEME['border']}",
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'fontSize': '16px',
+                            'minHeight': '120px',
+                            'marginBottom': '20px',
+                            'background': LIGHT_THEME['input_bg'],
+                            'fontWeight': '500',
+                            'resize': 'vertical'
+                        }
+                    ),
+                    
+                    html.Label("🏷️ Tagi:", style={
+                        'display': 'block',
+                        'marginBottom': '8px',
+                        'fontWeight': '700',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '16px'
+                    }),
+                    dcc.Dropdown(
+                        id='add-task-tags',
+                        multi=True,
+                        placeholder="Wybierz tagi...",
+                        style={
+                            'width': '100%',
+                            'marginBottom': '20px',
+                            'borderRadius': LIGHT_THEME['radius']
+                        }
+                    ),
+                    
+                    html.Label("✅ Status zadania:", style={
+                        'display': 'block',
+                        'marginBottom': '8px',
+                        'fontWeight': '700',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '16px'
+                    }),
+                    dcc.RadioItems(
+                        id='add-task-solved',
+                        options=[
+                            {'label': ' ❌ Nierozwiązane', 'value': False},
+                            {'label': ' ✅ Rozwiązane poprawnie', 'value': True}
+                        ],
+                        value=False,
+                        style={
+                            'marginBottom': '24px',
+                            'fontSize': '16px',
+                            'fontWeight': '600'
+                        }
+                    ),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("💾", style={'marginRight': '8px'}),
+                            'Dodaj zadanie'
+                        ],
+                        id='save-add-task-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['success'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginRight': '16px'
+                        }),
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Anuluj'
+                        ],
+                        id='cancel-add-task-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center'})
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '600px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
+    
     html.Div(
         id='page-content',
         style={
@@ -594,6 +1003,9 @@ app.layout = html.Div([
     dcc.Store(id='math-tasks-store', data=[]),
     dcc.Store(id='task-set-store', data={'tasks': [], 'current_set': None, 'subject': 'matematyka'}),
     dcc.Store(id='edit-task-store', data={}),
+    dcc.Store(id='edit-set-store', data={}),
+    dcc.Store(id='add-task-to-set-store', data={}),
+    dcc.Store(id='delete-task-store', data={}),
 ])
 
 register_callbacks(app)
