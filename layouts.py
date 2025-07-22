@@ -6,7 +6,8 @@ from utils import TAGS
 def get_sidebar():
     return html.Div([
         html.Div([
-            html.H2("✨ LifeChanger", style={
+            # In get_sidebar() function, change line ~15:
+            html.H2("📊 Matura Dashboard", style={
                 'color': LIGHT_THEME['text_light'], 
                 'padding': '32px 0 24px 0', 
                 'fontWeight': '800', 
@@ -15,6 +16,7 @@ def get_sidebar():
                 'fontSize': '28px',
                 'margin': '0'
             }),
+
             html.Div(style={
                 'height': '3px',
                 'background': 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',

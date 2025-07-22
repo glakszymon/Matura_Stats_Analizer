@@ -13,7 +13,9 @@ app.index_string = '''
 <html>
     <head>
         {%metas%}
-        <title>{%title%}</title>
+        <meta name="description" content="Matura Dashboard - Zarządzaj zadaniami maturalnymi">
+        <title>Matura Dashboard</title>
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
         {%favicon%}
         {%css%}
         <style>
@@ -131,6 +133,11 @@ app.index_string = '''
                 .mobile-menu-btn {
                     display: block !important;
                 }
+            }
+            
+            /* Mobile menu overlay - pod sidebar */
+            #mobile-menu-overlay {
+                z-index: 1000 !important; /* Pod sidebar */
             }
             
             @media (min-width: 993px) {
