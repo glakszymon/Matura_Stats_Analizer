@@ -1,7 +1,7 @@
 # layouts.py
 from dash import dcc, html
 from theme import LIGHT_THEME
-from utils import TAGS
+# Usunięto import DEFAULT_CATEGORIES - nie są już używane
 
 def get_sidebar():
     return html.Div([
@@ -96,6 +96,27 @@ def get_sidebar():
                     html.Span("💻", style={'marginRight': '12px', 'fontSize': '20px'}),
                     "Statystyki Informatyka"
                 ], href="/stats-it", style={
+                    'color': LIGHT_THEME['text_light'], 
+                    'fontWeight': '600', 
+                    'fontSize': '16px', 
+                    'textDecoration': 'none', 
+                    'transition': 'all 0.3s ease',
+                    'display': 'flex',
+                    'alignItems': 'center'
+                }),
+                style={
+                    'padding': '16px 24px', 
+                    'transition': 'all 0.3s ease',
+                    'borderRadius': '12px',
+                    'margin': '4px 12px'
+                },
+                className='sidebar-item'
+            ),
+            html.Li(
+                dcc.Link([
+                    html.Span("🏷️", style={'marginRight': '12px', 'fontSize': '20px'}),
+                    "Zarządzaj Kategoriami"
+                ], href="/manage-categories", style={
                     'color': LIGHT_THEME['text_light'], 
                     'fontWeight': '600', 
                     'fontSize': '16px', 
@@ -906,4 +927,187 @@ def get_stats_layout(subject="matematyka"):
 
 def get_stats_layout_it():
     return get_stats_layout(subject="informatyka")
+
+def get_manage_categories_layout():
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.H1([
+                    html.Span("🏷️", style={'marginRight': '16px'}),
+                    "Zarządzaj Kategoriami"
+                ], style={
+                    'color': LIGHT_THEME['text'],
+                    'fontWeight': '800',
+                    'fontSize': '36px',
+                    'marginBottom': '8px',
+                    'textAlign': 'center'
+                }),
+                html.P("Dodawaj i zarządzaj kategoriami dla swoich zestawów zadań", style={
+                    'color': LIGHT_THEME['placeholder'],
+                    'fontSize': '18px',
+                    'textAlign': 'center',
+                    'marginBottom': '40px',
+                    'fontWeight': '500'
+                })
+            ], style={
+                'background': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'padding': '60px 40px',
+                'borderRadius': f"{LIGHT_THEME['radius']} {LIGHT_THEME['radius']} 0 0",
+                'color': 'white',
+                'textAlign': 'center'
+            }),
+            
+            html.Div([
+                # Sekcja dodawania kategorii
+                html.Div([
+                    html.H2([
+                        html.Span("➕", style={'marginRight': '12px'}),
+                        "Dodaj Nową Kategorię"
+                    ], style={
+                        'color': LIGHT_THEME['text'],
+                        'fontWeight': '700',
+                        'fontSize': '24px',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.Div([
+                        html.Div([
+                            html.Label("📚 Przedmiot:", style={
+                                'display': 'block',
+                                'marginBottom': '8px',
+                                'fontWeight': '700',
+                                'color': LIGHT_THEME['text'],
+                                'fontSize': '16px'
+                            }),
+                            dcc.Dropdown(
+                                id='category-subject-dropdown',
+                                options=[
+                                    {'label': '📊 Matematyka', 'value': 'matematyka'},
+                                    {'label': '💻 Informatyka', 'value': 'informatyka'}
+                                ],
+                                placeholder="Wybierz przedmiot...",
+                                style={
+                                    'marginBottom': '20px',
+                                    'borderRadius': LIGHT_THEME['radius']
+                                }
+                            )
+                        ], style={'flex': '1', 'marginRight': '20px'}),
+                        
+                        html.Div([
+                            html.Label("🏷️ Nazwa kategorii:", style={
+                                'display': 'block',
+                                'marginBottom': '8px',
+                                'fontWeight': '700',
+                                'color': LIGHT_THEME['text'],
+                                'fontSize': '16px'
+                            }),
+                            dcc.Input(
+                                id='new-category-name',
+                                type='text',
+                                placeholder='Np. "Geometria Analityczna"',
+                                style={
+                                    'width': '100%',
+                                    'padding': '14px',
+                                    'border': f"2px solid {LIGHT_THEME['border']}",
+                                    'borderRadius': LIGHT_THEME['radius'],
+                                    'fontSize': '16px',
+                                    'marginBottom': '20px',
+                                    'background': LIGHT_THEME['input_bg'],
+                                    'fontWeight': '500'
+                                }
+                            )
+                        ], style={'flex': '1'})
+                    ], style={'display': 'flex', 'marginBottom': '24px'}),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("💾", style={'marginRight': '8px'}),
+                            'Dodaj Kategorię'
+                        ],
+                        id='add-category-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 32px',
+                            'background': LIGHT_THEME['success'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center', 'marginBottom': '32px'}),
+                    
+                    html.Div(id='category-message', style={
+                        'textAlign': 'center',
+                        'marginBottom': '32px',
+                        'fontSize': '16px',
+                        'fontWeight': '600'
+                    })
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '32px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'boxShadow': LIGHT_THEME['shadow'],
+                    'marginBottom': '32px'
+                }),
+                
+                # Sekcja listy kategorii
+                html.Div([
+                    html.H2([
+                        html.Span("📋", style={'marginRight': '12px'}),
+                        "Istniejące Kategorie"
+                    ], style={
+                        'color': LIGHT_THEME['text'],
+                        'fontWeight': '700',
+                        'fontSize': '24px',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.Div([
+                        html.Label("🔍 Filtruj według przedmiotu:", style={
+                            'display': 'block',
+                            'marginBottom': '8px',
+                            'fontWeight': '700',
+                            'color': LIGHT_THEME['text'],
+                            'fontSize': '16px'
+                        }),
+                        dcc.Dropdown(
+                            id='filter-subject-dropdown',
+                            options=[
+                                {'label': 'Wszystkie przedmioty', 'value': 'all'},
+                                {'label': '📊 Matematyka', 'value': 'matematyka'},
+                                {'label': '💻 Informatyka', 'value': 'informatyka'}
+                            ],
+                            value='all',
+                            style={
+                                'marginBottom': '24px',
+                                'borderRadius': LIGHT_THEME['radius']
+                            }
+                        )
+                    ]),
+                    
+                    html.Div(id='categories-list', style={
+                        'minHeight': '200px'
+                    })
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '32px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'boxShadow': LIGHT_THEME['shadow']
+                })
+            ], style={'padding': '40px'})
+        ], style={
+            'background': LIGHT_THEME['content_bg'],
+            'minHeight': '100vh',
+            'borderRadius': LIGHT_THEME['radius'],
+            'boxShadow': LIGHT_THEME['shadow'],
+            'overflow': 'hidden'
+        })
+    ], style={
+        'padding': '20px',
+        'background': LIGHT_THEME['background'],
+        'minHeight': '100vh'
+    })
 

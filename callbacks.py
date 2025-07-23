@@ -3,7 +3,15 @@ from dash import dcc, html, Input, Output, State, ALL, MATCH
 from dash import callback, no_update
 import uuid
 import datetime
-from utils import TAGS, get_tags_for_subject, calculate_tag_stats, create_radar_chart, create_stats_summary, update_zadanie, delete_zadanie, fetch_zadanie_by_id, update_zestaw, fetch_zestaw_by_id, get_next_task_number, delete_zestaw, insert_zadanie
+from utils import (
+    fetch_all_zestawy, fetch_zadania_for_zestaw, fetch_all_zadania_with_tags,
+    get_tags_for_subject, calculate_tag_stats, create_radar_chart, create_stats_summary,
+    update_zadanie, delete_zadanie, fetch_zadanie_by_id, update_zestaw, fetch_zestaw_by_id,
+    get_next_task_number, delete_zestaw, insert_zadanie, insert_zestaw,
+    get_kategorie_for_zestaw, get_kategorie_by_ids,
+    add_new_kategoria, delete_kategoria, get_kategorie_for_subject, 
+    clear_all_categories, clear_all_tasks, clear_entire_database
+)
 from theme import LIGHT_THEME
 
 # --- CALLBACKS ---
@@ -48,7 +56,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def display_page(pathname):
-        from layouts import get_home_layout, get_stats_layout, get_stats_layout_it, get_math_tasks_layout
+        from layouts import get_home_layout, get_stats_layout, get_stats_layout_it, get_math_tasks_layout, get_manage_categories_layout
         if pathname == '/':
             return get_home_layout()
         elif pathname == '/math-tasks':
@@ -57,6 +65,8 @@ def register_callbacks(app):
             return get_stats_layout(subject="matematyka")
         elif pathname == '/stats-it':
             return get_stats_layout_it()
+        elif pathname == '/manage-categories':
+            return get_manage_categories_layout()
         else:
             return html.Div("404: Nie znaleziono strony", style={'padding': '40px', 'fontSize': '24px'})
 
@@ -162,7 +172,11 @@ def register_callbacks(app):
         if n_clicks == 0 or task_count is None or task_count < 1:
             return no_update, no_update, no_update
         
-        set_id = str(uuid.uuid4())
+        # Najpierw utwórz zestaw w bazie, żeby mieć ID
+        zestaw_id = insert_zestaw(set_name if set_name else f"Zestaw zadań {datetime.datetime.now().strftime('%Y-%m-%d')}", subject)
+        
+        # Nie tworzymy już domyślnych kategorii - użytkownik dodaje własne
+        
         tasks = []
         for i in range(1, task_count + 1):
             task_id = str(uuid.uuid4())
@@ -176,7 +190,10 @@ def register_callbacks(app):
                 'temp_data': None
             })
         
-        tag_options = [{'label': tag.replace('_', ' '), 'value': tag} for tag in get_tags_for_subject(subject)]
+        # Pobierz kategorie dla tego zestawu
+        kategorie = get_kategorie_for_zestaw(zestaw_id)
+        tag_options = [{'label': k['nazwa'], 'value': k['id']} for k in kategorie]
+        
         form_children = []
         
         for task in tasks:
@@ -238,7 +255,7 @@ def register_callbacks(app):
                             }
                         ),
                         
-                        html.Label("🏷️ Tagi:", style={
+                        html.Label("🏷️ Kategorie:", style={
                             'display': 'block',
                             'marginBottom': '6px',
                             'fontWeight': '600',
@@ -249,7 +266,7 @@ def register_callbacks(app):
                             id={'type': 'task-tags-dropdown', 'index': task['id']},
                             options=tag_options,
                             multi=True,
-                            placeholder="Wybierz tagi...",
+                            placeholder="Wybierz kategorie...",
                             style={
                                 'width': '100%',
                                 'marginBottom': '12px',
@@ -288,7 +305,7 @@ def register_callbacks(app):
                 ])
             )
         task_set_data = {
-            'current_set': set_id,
+            'current_set': zestaw_id,  # Używaj prawdziwego ID z bazy
             'set_name': set_name if set_name else f"Zestaw zadań {datetime.datetime.now().strftime('%Y-%m-%d')}",
             'tasks': tasks,
             'subject': subject
@@ -318,28 +335,31 @@ def register_callbacks(app):
         if n_clicks == 0 or not task_set_data or not task_set_data['tasks']:
             return no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update
         
-        from utils import insert_zestaw, insert_zadanie
         tasks_in_set = task_set_data['tasks']
         updated_tasks = []
         set_name = task_set_data['set_name']
         subject = task_set_data.get('subject', 'matematyka')
         
-        zestaw_id = insert_zestaw(set_name, subject)
+        zestaw_id = task_set_data['current_set']  # Używaj istniejącego ID
         
         for i, task in enumerate(tasks_in_set):
             name = all_names[i] if all_names[i] else f"Zadanie {task['number']}"
             content = all_contents[i] if all_contents[i] else ""
-            tags = all_tags_values[i] if all_tags_values[i] else []
+            kategorie_ids = all_tags_values[i] if all_tags_values[i] else []
             solved = all_solved_values[i] if all_solved_values[i] is not None else False
             
-            insert_zadanie(zestaw_id, task['number'], name, content, solved, tags)
+            insert_zadanie(zestaw_id, task['number'], name, content, solved, kategorie_ids)
+            
+            # Pobierz nazwy kategorii dla wyświetlania
+            kategorie = get_kategorie_for_zestaw(zestaw_id)
+            category_names = [k['nazwa'] for k in kategorie if k['id'] in kategorie_ids]
             
             updated_task = {
                 'id': task['id'],
                 'number': task['number'],
                 'name': name,
                 'content': content,
-                'tags': tags,
+                'tags': category_names,
                 'solved': solved,
                 'created': datetime.datetime.now().isoformat(),
                 'set_id': zestaw_id,
@@ -441,20 +461,15 @@ def register_callbacks(app):
             task_to_edit = fetch_zadanie_by_id(task_id)
             
             if task_to_edit:
-                # Get subject from zestaw
-                zestawy = fetch_all_zestawy()
-                subject = 'matematyka'  # default
-                for zestaw in zestawy:
-                    if zestaw['id'] == task_to_edit['id_zestawu']:
-                        subject = zestaw.get('subject', 'matematyka')
-                        break
+                # Pobierz kategorie dla tego zestawu
+                kategorie = get_kategorie_for_zestaw(task_to_edit['id_zestawu'])
+                tag_options = [{'label': k['nazwa'], 'value': k['id']} for k in kategorie]
                 
-                tag_options = [{'label': tag.replace('_', ' '), 'value': tag} for tag in get_tags_for_subject(subject)]
                 return (
                     {'display': 'block'},
                     task_to_edit['nazwa'],
                     task_to_edit['tresc'],
-                    task_to_edit['tags'],
+                    task_to_edit.get('kategorie_ids', []),
                     tag_options,
                     task_to_edit['solved'],
                     {'task_id': task_id, 'db_id': task_to_edit['id']}
@@ -475,14 +490,14 @@ def register_callbacks(app):
          State('math-tasks-store', 'data')],
         prevent_initial_call=True
     )
-    def save_task_edit(n_clicks, name, content, tags, solved, edit_store, tasks):
+    def save_task_edit(n_clicks, name, content, kategorie_ids, solved, edit_store, tasks):
         if n_clicks == 0 or not edit_store or 'db_id' not in edit_store:
             return no_update, no_update, no_update
         
         db_id = edit_store['db_id']
         
         # Update in database
-        update_zadanie(db_id, name, content, tags, solved)
+        update_zadanie(db_id, name, content, kategorie_ids, solved)
         
         # Update in store (for immediate UI update)
         task_id = edit_store['task_id']
@@ -493,7 +508,19 @@ def register_callbacks(app):
                 updated_task = task.copy()
                 updated_task['name'] = name if name else f"Zadanie {task['number']}"
                 updated_task['content'] = content if content else ""
-                updated_task['tags'] = tags if tags else []
+                
+                # Pobierz nazwy kategorii dla wyświetlania
+                if kategorie_ids:
+                    # Pobierz zestaw_id z zadania
+                    zadanie_db = fetch_zadanie_by_id(db_id)
+                    if zadanie_db:
+                        kategorie = get_kategorie_for_zestaw(zadanie_db['id_zestawu'])
+                        updated_task['tags'] = [k['nazwa'] for k in kategorie if k['id'] in kategorie_ids]
+                    else:
+                        updated_task['tags'] = []
+                else:
+                    updated_task['tags'] = []
+                
                 updated_task['solved'] = solved if solved is not None else False
                 updated_tasks.append(updated_task)
             else:
@@ -696,7 +723,8 @@ def register_callbacks(app):
             
             if zestaw:
                 subject = zestaw.get('subject', 'matematyka')
-                tag_options = [{'label': tag.replace('_', ' '), 'value': tag} for tag in get_tags_for_subject(subject)]
+                kategorie = get_kategorie_for_zestaw(set_id)
+                tag_options = [{'label': k['nazwa'], 'value': k['id']} for k in kategorie]
                 next_number = get_next_task_number(set_id)
                 
                 return (
@@ -730,7 +758,7 @@ def register_callbacks(app):
          State('math-tasks-store', 'data')],
         prevent_initial_call=True
     )
-    def save_new_task_to_set(n_clicks, name, content, tags, solved, add_store, tasks):
+    def save_new_task_to_set(n_clicks, name, content, kategorie_ids, solved, add_store, tasks):
         if n_clicks == 0 or not add_store or 'set_id' not in add_store:
             return no_update, no_update, no_update, no_update, no_update, no_update, no_update
         
@@ -742,11 +770,18 @@ def register_callbacks(app):
         # Default values
         task_name = name if name else f"Zadanie {task_number}"
         task_content = content if content else ""
-        task_tags = tags if tags else []
+        task_kategorie_ids = kategorie_ids if kategorie_ids else []
         task_solved = solved if solved is not None else False
         
         # Insert into database
-        insert_zadanie(set_id, task_number, task_name, task_content, task_solved, task_tags)
+        insert_zadanie(set_id, task_number, task_name, task_content, task_solved, task_kategorie_ids)
+        
+        # Pobierz nazwy kategorii dla wyświetlania
+        if task_kategorie_ids:
+            kategorie = get_kategorie_by_ids(task_kategorie_ids)
+            task_tags = [k['nazwa'] for k in kategorie]
+        else:
+            task_tags = []
         
         # Create new task for store
         new_task = {
@@ -795,5 +830,310 @@ def register_callbacks(app):
         
         # Remove from store
         updated_tasks = [task for task in tasks if task.get('set_id') != set_id]
-        
+
         return updated_tasks
+
+    # === CATEGORIES MANAGEMENT CALLBACKS ===
+    
+    # Add new category
+    @app.callback(
+        Output('category-message', 'children'),
+        [Input('add-category-button', 'n_clicks')],
+        [State('category-subject-dropdown', 'value'),
+         State('new-category-name', 'value')]
+    )
+    def add_new_category_callback(n_clicks, subject, category_name):
+        if not n_clicks or not subject or not category_name:
+            return ""
+        
+        # Add category
+        result = add_new_kategoria(category_name.strip(), subject)
+        
+        if result is None:
+            return html.Div("⚠️ Kategoria już istnieje dla tego przedmiotu", style={'color': LIGHT_THEME['warning']})
+        else:
+            return html.Div("✅ Pomyślnie dodano kategorię", style={'color': LIGHT_THEME['success']})
+
+    # Display categories list
+    @app.callback(
+        Output('categories-list', 'children'),
+        [Input('url', 'pathname'),
+         Input('filter-subject-dropdown', 'value'),
+         Input('category-message', 'children')]  # Refresh when category is added
+    )
+    def display_categories_list(pathname, filter_subject, _):
+        if pathname != '/manage-categories':
+            return ""
+        
+        # Get categories based on filter
+        if filter_subject == 'all' or not filter_subject:
+            # Get all categories for both subjects
+            all_categories = []
+            for subject in ['matematyka', 'informatyka']:
+                categories = get_kategorie_for_subject(subject)
+                all_categories.extend(categories)
+        else:
+            # Get categories for specific subject
+            all_categories = get_kategorie_for_subject(filter_subject)
+        
+        if not all_categories:
+            return html.Div([
+                html.Div("📭", style={'fontSize': '64px', 'textAlign': 'center', 'marginBottom': '16px'}),
+                html.P("Brak kategorii do wyświetlenia", style={
+                    'textAlign': 'center',
+                    'color': LIGHT_THEME['placeholder'],
+                    'fontSize': '18px',
+                    'fontWeight': '500'
+                })
+            ], style={'padding': '40px'})
+        
+        # Create category cards
+        category_cards = []
+        for cat in all_categories:
+            category_cards.append(
+                html.Div([
+                    html.Div([
+                        html.Div([
+                            html.H4(cat['nazwa'], style={
+                                'margin': '0',
+                                'color': LIGHT_THEME['text'],
+                                'fontWeight': '700',
+                                'fontSize': '18px'
+                            }),
+                            html.P(f"Przedmiot: {cat.get('subject', 'N/A').capitalize()}", style={
+                                'margin': '0',
+                                'color': LIGHT_THEME['placeholder'],
+                                'fontSize': '14px'
+                            })
+                        ], style={'flex': '1'}),
+                        
+                        html.Button([
+                            html.Span("🗑️", style={'fontSize': '16px'})
+                        ],
+                        id={'type': 'delete-category-btn', 'index': cat['id']},
+                        n_clicks=0,
+                        style={
+                            'background': LIGHT_THEME['error'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '6px',
+                            'width': '40px',
+                            'height': '40px',
+                            'cursor': 'pointer',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'transition': 'all 0.3s ease'
+                        })
+                    ], style={
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'space-between'
+                    })
+                ], style={
+                    'background': 'white',
+                    'padding': '20px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'boxShadow': LIGHT_THEME['shadow'],
+                    'marginBottom': '16px',
+                    'border': f"1px solid {LIGHT_THEME['border']}"
+                })
+            )
+        
+        return category_cards
+
+    # Delete category
+    @app.callback(
+        Output('categories-list', 'children', allow_duplicate=True),
+        Input({'type': 'delete-category-btn', 'index': ALL}, 'n_clicks'),
+        [State('filter-subject-dropdown', 'value')],
+        prevent_initial_call=True
+    )
+    def delete_category_callback(delete_clicks, filter_subject):
+        ctx = callback_context
+        if not ctx.triggered or not any(delete_clicks):
+            return no_update
+        
+        button_id = eval(ctx.triggered[0]['prop_id'].split('.')[0])
+        category_id = button_id['index']
+        
+        # Delete from database
+        success = delete_kategoria(category_id)
+        
+        if not success:
+            return no_update
+        
+        # Return updated list (same logic as display_categories_list)
+        if filter_subject == 'all' or not filter_subject:
+            # Get all categories for both subjects
+            all_categories = []
+            for subject in ['matematyka', 'informatyka']:
+                categories = get_kategorie_for_subject(subject)
+                all_categories.extend(categories)
+        else:
+            # Get categories for specific subject
+            all_categories = get_kategorie_for_subject(filter_subject)
+        
+        if not all_categories:
+            return html.Div([
+                html.Div("📭", style={'fontSize': '64px', 'textAlign': 'center', 'marginBottom': '16px'}),
+                html.P("Brak kategorii do wyświetlenia", style={
+                    'textAlign': 'center',
+                    'color': LIGHT_THEME['placeholder'],
+                    'fontSize': '18px',
+                    'fontWeight': '500'
+                })
+            ], style={'padding': '40px'})
+        
+        category_cards = []
+        for cat in all_categories:
+            category_cards.append(
+                html.Div([
+                    html.Div([
+                        html.Div([
+                            html.H4(cat['nazwa'], style={
+                                'margin': '0',
+                                'color': LIGHT_THEME['text'],
+                                'fontWeight': '700',
+                                'fontSize': '18px'
+                            }),
+                            html.P(f"Przedmiot: {cat.get('subject', 'N/A').capitalize()}", style={
+                                'margin': '0',
+                                'color': LIGHT_THEME['placeholder'],
+                                'fontSize': '14px'
+                            })
+                        ], style={'flex': '1'}),
+                        
+                        html.Button([
+                            html.Span("🗑️", style={'fontSize': '16px'})
+                        ],
+                        id={'type': 'delete-category-btn', 'index': cat['id']},
+                        n_clicks=0,
+                        style={
+                            'background': LIGHT_THEME['error'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '6px',
+                            'width': '40px',
+                            'height': '40px',
+                            'cursor': 'pointer',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'transition': 'all 0.3s ease'
+                        })
+                    ], style={
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'space-between'
+                    })
+                ], style={
+                    'background': 'white',
+                    'padding': '20px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'boxShadow': LIGHT_THEME['shadow'],
+                    'marginBottom': '16px',
+                    'border': f"1px solid {LIGHT_THEME['border']}"
+                })
+            )
+        
+        return category_cards
+    # Clear all categories
+    @app.callback(
+        [Output("category-message", "children", allow_duplicate=True),
+         Output("categories-list", "children", allow_duplicate=True)],
+        Input("clear-all-categories-button", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def clear_all_categories_callback(n_clicks):
+        if not n_clicks:
+            return no_update, no_update
+        
+        # Clear all categories from database
+        rows_affected = clear_all_categories()
+        
+        message = html.Div(f"✅ Usunięto {rows_affected} kategorii z bazy danych", 
+                          style={"color": LIGHT_THEME["success"]})
+        
+        empty_list = html.Div([
+            html.Div("📭", style={"fontSize": "64px", "textAlign": "center", "marginBottom": "16px"}),
+            html.P("Brak kategorii do wyświetlenia", style={
+                "textAlign": "center",
+                "color": LIGHT_THEME["placeholder"],
+                "fontSize": "18px",
+                "fontWeight": "500"
+            })
+        ], style={"padding": "40px"})
+        
+        return message, empty_list
+    # === ADMIN PANEL CALLBACKS ===
+    
+    # Global keyboard listener for admin panel
+    @app.callback(
+        Output('admin-panel-modal', 'style'),
+        Input('keyboard-store', 'data'),
+        State('admin-panel-modal', 'style')
+    )
+    def toggle_admin_panel(keyboard_data, current_style):
+        # Check for Ctrl+Shift+A combination
+        keys = keyboard_data.get('keys', [])
+        if len(keys) >= 3 and 'Control' in keys and 'Shift' in keys and 'KeyA' in keys:
+            if current_style.get('display') == 'none':
+                return {'display': 'flex'}
+        return current_style
+    
+    # Close admin panel
+    @app.callback(
+        Output('admin-panel-modal', 'style', allow_duplicate=True),
+        Input('close-admin-panel-button', 'n_clicks'),
+        prevent_initial_call=True
+    )
+    def close_admin_panel(n_clicks):
+        if n_clicks:
+            return {'display': 'none'}
+        return no_update
+    
+    # Admin clear categories
+    @app.callback(
+        Output('admin-message', 'children'),
+        [Input('admin-clear-categories-button', 'n_clicks'),
+         Input('admin-clear-tasks-button', 'n_clicks'),
+         Input('admin-clear-all-button', 'n_clicks')],
+        prevent_initial_call=True
+    )
+    def admin_clear_operations(clear_categories_clicks, clear_tasks_clicks, clear_all_clicks):
+        ctx = callback_context
+        if not ctx.triggered:
+            return ""
+        
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        
+        try:
+            if button_id == 'admin-clear-categories-button' and clear_categories_clicks:
+                rows_affected = clear_all_categories()
+                return html.Div(f"✅ Usunięto {rows_affected} kategorii z bazy danych", 
+                              style={'color': LIGHT_THEME['success']})
+                              
+            elif button_id == 'admin-clear-tasks-button' and clear_tasks_clicks:
+                success = clear_all_tasks()
+                if success:
+                    return html.Div("✅ Usunięto wszystkie zadania i zestawy z bazy danych", 
+                                  style={'color': LIGHT_THEME['success']})
+                else:
+                    return html.Div("❌ Błąd podczas usuwania zadań", 
+                                  style={'color': LIGHT_THEME['error']})
+                                  
+            elif button_id == 'admin-clear-all-button' and clear_all_clicks:
+                success = clear_entire_database()
+                if success:
+                    return html.Div("💣 Wyczyszczono całą bazę danych!", 
+                                  style={'color': LIGHT_THEME['error'], 'fontWeight': 'bold'})
+                else:
+                    return html.Div("❌ Błąd podczas czyszczenia bazy danych", 
+                                  style={'color': LIGHT_THEME['error']})
+                                  
+        except Exception as e:
+            return html.Div(f"❌ Błąd: {str(e)}", 
+                          style={'color': LIGHT_THEME['error']})
+        
+        return ""

@@ -1,7 +1,7 @@
 import dash
 from dash import dcc, html, Input, Output, State, ALL
 from theme import LIGHT_THEME
-from layouts import get_sidebar, get_home_layout, get_stats_layout, get_stats_layout_it
+from layouts import get_sidebar, get_home_layout, get_stats_layout, get_stats_layout_it, get_manage_categories_layout
 from callbacks import register_callbacks
 from template_loader import load_html_template
 
@@ -812,6 +812,148 @@ app.layout = html.Div([
         style={'display': 'none'}
     ),
     
+    # Admin panel modal (hidden, activated by keyboard shortcut)
+    html.Div(
+        id='admin-panel-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div([
+                        html.H3("🔧 Panel Administratora", style={
+                            'marginBottom': '24px',
+                            'fontWeight': '800',
+                            'color': LIGHT_THEME['text'],
+                            'fontSize': '24px',
+                            'textAlign': 'center'
+                        }),
+                        html.P("Uwaga: Te operacje są nieodwracalne!", style={
+                            'textAlign': 'center',
+                            'color': LIGHT_THEME['error'],
+                            'fontSize': '16px',
+                            'fontWeight': '600',
+                            'marginBottom': '24px'
+                        }),
+                        html.Div(style={
+                            'height': '3px',
+                            'background': LIGHT_THEME['error'],
+                            'borderRadius': '2px',
+                            'marginBottom': '24px'
+                        })
+                    ]),
+                    
+                    html.Div([
+                        html.H4("🗑️ Czyszczenie Bazy Danych", style={
+                            'color': LIGHT_THEME['text'],
+                            'fontWeight': '700',
+                            'fontSize': '18px',
+                            'marginBottom': '16px'
+                        }),
+                        
+                        html.Button([
+                            html.Span("🏷️", style={'marginRight': '8px'}),
+                            'Wyczyść Wszystkie Kategorie'
+                        ],
+                        id='admin-clear-categories-button',
+                        n_clicks=0,
+                        style={
+                            'width': '100%',
+                            'padding': '16px',
+                            'background': LIGHT_THEME['warning'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginBottom': '12px'
+                        }),
+                        
+                        html.Button([
+                            html.Span("📝", style={'marginRight': '8px'}),
+                            'Wyczyść Wszystkie Zadania'
+                        ],
+                        id='admin-clear-tasks-button',
+                        n_clicks=0,
+                        style={
+                            'width': '100%',
+                            'padding': '16px',
+                            'background': LIGHT_THEME['error'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginBottom': '12px'
+                        }),
+                        
+                        html.Button([
+                            html.Span("💣", style={'marginRight': '8px'}),
+                            'Wyczyść Całą Bazę Danych'
+                        ],
+                        id='admin-clear-all-button',
+                        n_clicks=0,
+                        style={
+                            'width': '100%',
+                            'padding': '16px',
+                            'background': '#8b0000',
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginBottom': '24px'
+                        })
+                    ]),
+                    
+                    html.Div(id='admin-message', style={
+                        'textAlign': 'center',
+                        'marginBottom': '24px',
+                        'fontSize': '16px',
+                        'fontWeight': '600'
+                    }),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Zamknij'
+                        ],
+                        id='close-admin-panel-button',
+                        n_clicks=0,
+                        style={
+                            'width': '100%',
+                            'padding': '16px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ])
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '500px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow_strong'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
+    
     html.Div(
         id='page-content',
         style={
@@ -830,6 +972,7 @@ app.layout = html.Div([
     dcc.Store(id='edit-set-store', data={}),
     dcc.Store(id='add-task-to-set-store', data={}),
     dcc.Store(id='delete-task-store', data={}),
+    dcc.Store(id='keyboard-store', data={'keys': []}),
 ])
 
 register_callbacks(app)

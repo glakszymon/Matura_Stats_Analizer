@@ -531,6 +531,52 @@
                     });
                 }
             });
+            
+            // Admin panel keyboard shortcut (Ctrl+Alt+Shift+D)
+            let pressedKeys = new Set();
+            
+            document.addEventListener('keydown', function(event) {
+                pressedKeys.add(event.code);
+                
+                // Check for Ctrl+Alt+Shift+D
+                if (pressedKeys.has('ControlLeft') && pressedKeys.has('AltLeft') && pressedKeys.has('ShiftLeft') && pressedKeys.has('KeyD')) {
+                    event.preventDefault();
+                    
+                    // Update keyboard store to trigger callback
+                    const keyboardStore = document.querySelector('[data-dash-attr="id"][data-dash-value="keyboard-store"]');
+                    if (keyboardStore) {
+                        // Simulate store update
+                        const keyboardData = {
+                            keys: Array.from(pressedKeys),
+                            timestamp: Date.now()
+                        };
+                        
+                        // Trigger Dash callback by updating the store
+                        window.dash_clientside = window.dash_clientside || {};
+                        window.dash_clientside.no_update = window.dash_clientside.no_update || {};
+                        
+                        // Try to find and trigger the admin modal directly
+                        const adminModal = document.getElementById('admin-panel-modal');
+                        if (adminModal) {
+                            const currentDisplay = window.getComputedStyle(adminModal).display;
+                            if (currentDisplay === 'none') {
+                                adminModal.style.display = 'flex';
+                            } else {
+                                adminModal.style.display = 'none';
+                            }
+                        }
+                    }
+                }
+            });
+            
+            document.addEventListener('keyup', function(event) {
+                pressedKeys.delete(event.code);
+            });
+            
+            // Clear pressed keys when window loses focus
+            window.addEventListener('blur', function() {
+                pressedKeys.clear();
+            });
         </script>
     </body>
 </html>

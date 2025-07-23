@@ -26,31 +26,51 @@ def insert_zestaw(name, subject):
     conn.close()
     return zestaw_id
 
-def insert_zadanie(id_zestawu, nr_zadania, nazwa, tresc, solved, tags):
+def insert_zadanie(id_zestawu, nr_zadania, nazwa, tresc, solved, kategorie_ids):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO Zadanie (id_zestawu, nr_zadania, nazwa, tresc, solved, tags, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW())
+        INSERT INTO Zadanie (id_zestawu, nr_zadania, nazwa, tresc, solved, created_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
         """,
-        (id_zestawu, nr_zadania, nazwa, tresc, int(solved), ",".join(tags))
+        (id_zestawu, nr_zadania, nazwa, tresc, int(solved))
     )
+    zadanie_id = cur.lastrowid
+    
+    # Dodaj powiązania z kategoriami
+    for kategoria_id in kategorie_ids:
+        cur.execute(
+            "INSERT INTO zadanie_kategoria (zadanie_id, kategoria_id) VALUES (?, ?)",
+            (zadanie_id, kategoria_id)
+        )
+    
     conn.commit()
     cur.close()
     conn.close()
 
-def update_zadanie(zadanie_id, nazwa, tresc, tags, solved):
+def update_zadanie(zadanie_id, nazwa, tresc, kategorie_ids, solved):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
         """
         UPDATE Zadanie 
-        SET nazwa = ?, tresc = ?, tags = ?, solved = ?
+        SET nazwa = ?, tresc = ?, solved = ?
         WHERE id = ?
         """,
-        (nazwa, tresc, ",".join(tags), int(solved), zadanie_id)
+        (nazwa, tresc, int(solved), zadanie_id)
     )
+    
+    # Usuń stare powiązania z kategoriami
+    cur.execute("DELETE FROM zadanie_kategoria WHERE zadanie_id = ?", (zadanie_id,))
+    
+    # Dodaj nowe powiązania z kategoriami
+    for kategoria_id in kategorie_ids:
+        cur.execute(
+            "INSERT INTO zadanie_kategoria (zadanie_id, kategoria_id) VALUES (?, ?)",
+            (zadanie_id, kategoria_id)
+        )
+    
     conn.commit()
     cur.close()
     conn.close()
@@ -59,6 +79,9 @@ def delete_zadanie(zadanie_id):
     """Delete a task from the database"""
     conn = get_db_connection()
     cur = conn.cursor()
+    # Usuń powiązania z kategoriami
+    cur.execute("DELETE FROM zadanie_kategoria WHERE zadanie_id = ?", (zadanie_id,))
+    # Usuń zadanie
     cur.execute("DELETE FROM Zadanie WHERE id = ?", (zadanie_id,))
     conn.commit()
     rows_affected = cur.rowcount
@@ -70,10 +93,18 @@ def fetch_zadanie_by_id(zadanie_id):
     """Fetch a single task by ID"""
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT * FROM Zadanie WHERE id = ?", (zadanie_id,))
+    cur.execute("""
+        SELECT z.*, GROUP_CONCAT(k.nazwa) as kategorie_nazwy, GROUP_CONCAT(k.id) as kategorie_ids
+        FROM Zadanie z
+        LEFT JOIN zadanie_kategoria zk ON z.id = zk.zadanie_id
+        LEFT JOIN kategoria k ON zk.kategoria_id = k.id
+        WHERE z.id = ?
+        GROUP BY z.id
+    """, (zadanie_id,))
     zadanie = cur.fetchone()
     if zadanie:
-        zadanie['tags'] = [t.strip() for t in zadanie.get('tags', '').split(',')] if zadanie.get('tags') else []
+        zadanie['tags'] = [t.strip() for t in zadanie.get('kategorie_nazwy', '').split(',')] if zadanie.get('kategorie_nazwy') else []
+        zadanie['kategorie_ids'] = [int(t.strip()) for t in zadanie.get('kategorie_ids', '').split(',')] if zadanie.get('kategorie_ids') else []
         zadanie['solved'] = bool(zadanie['solved'])
     cur.close()
     conn.close()
@@ -91,13 +122,19 @@ def fetch_all_zestawy():
 def fetch_zadania_for_zestaw(zestaw_id):
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
-    cur.execute(
-        "SELECT * FROM Zadanie WHERE id_zestawu = ? ORDER BY nr_zadania ASC",
-        (zestaw_id,)
-    )
+    cur.execute("""
+        SELECT z.*, GROUP_CONCAT(k.nazwa) as kategorie_nazwy, GROUP_CONCAT(k.id) as kategorie_ids
+        FROM Zadanie z
+        LEFT JOIN zadanie_kategoria zk ON z.id = zk.zadanie_id
+        LEFT JOIN kategoria k ON zk.kategoria_id = k.id
+        WHERE z.id_zestawu = ?
+        GROUP BY z.id
+        ORDER BY z.nr_zadania ASC
+    """, (zestaw_id,))
     zadania = cur.fetchall()
     for zad in zadania:
-        zad['tags'] = [t.strip() for t in zad.get('tags', '').split(',')] if zad.get('tags') else []
+        zad['tags'] = [t.strip() for t in zad.get('kategorie_nazwy', '').split(',')] if zad.get('kategorie_nazwy') else []
+        zad['kategorie_ids'] = [int(t.strip()) for t in zad.get('kategorie_ids', '').split(',')] if zad.get('kategorie_ids') else []
         zad['solved'] = bool(zad['solved'])
     cur.close()
     conn.close()
@@ -113,18 +150,23 @@ def fetch_all_zadania_with_tags():
             z.nazwa as name,
             z.tresc as content,
             z.solved as solved,
-            z.tags as tags,
             z.created_at as created,
             z.id_zestawu as set_id,
             zm.name as set_name,
-            zm.subject as subject
+            zm.subject as subject,
+            GROUP_CONCAT(k.nazwa) as kategorie_nazwy,
+            GROUP_CONCAT(k.id) as kategorie_ids
         FROM Zadanie z
         LEFT JOIN zestaw_matura zm ON z.id_zestawu = zm.id
+        LEFT JOIN zadanie_kategoria zk ON z.id = zk.zadanie_id
+        LEFT JOIN kategoria k ON zk.kategoria_id = k.id
+        GROUP BY z.id
         ORDER BY z.created_at DESC
     """)
     zadania = cur.fetchall()
     for zad in zadania:
-        zad['tags'] = [t.strip() for t in zad.get('tags', '').split(',')] if zad.get('tags') else []
+        zad['tags'] = [t.strip() for t in zad.get('kategorie_nazwy', '').split(',')] if zad.get('kategorie_nazwy') else []
+        zad['kategorie_ids'] = [int(t.strip()) for t in zad.get('kategorie_ids', '').split(',')] if zad.get('kategorie_ids') else []
         zad['solved'] = bool(zad['solved'])
         if 'subject' not in zad or not zad['subject']:
             zad['subject'] = 'matematyka'
@@ -168,9 +210,16 @@ def get_next_task_number(zestaw_id):
 def delete_zestaw(zestaw_id):
     conn = get_db_connection()
     cur = conn.cursor()
-    # Najpierw usuń wszystkie zadania z zestawu
+    # Usuń powiązania zadań z kategoriami
+    cur.execute("""
+        DELETE zk FROM zadanie_kategoria zk
+        JOIN Zadanie z ON zk.zadanie_id = z.id
+        WHERE z.id_zestawu = ?
+    """, (zestaw_id,))
+    # Usuń wszystkie zadania z zestawu
     cur.execute("DELETE FROM Zadanie WHERE id_zestawu = ?", (zestaw_id,))
-    # Potem usuń sam zestaw
+    # Nie usuwamy kategorii - teraz są przypisane do przedmiotu, nie zestawu
+    # Usuń sam zestaw
     cur.execute("DELETE FROM zestaw_matura WHERE id = ?", (zestaw_id,))
     conn.commit()
     cur.close()
@@ -181,45 +230,33 @@ from theme import LIGHT_THEME
 import math
 from dash import html
 
-TAGS = {
-    "matematyka": [
-        "#Geometria_Analityczna",
-        "#Planimetria",
-        "#Stereometria",
-        "#Kombinatoryka",
-        "#Rachunek_Prawdopodobieństwa",
-        "#Funkcje",
-        "#Ciągi",
-        "#Trygonometria",
-        "#Równania_i_Nierówności",
-        "#Optymalizacja",
-        "#Dowody"
-    ],
-    "informatyka": [
-        "#Algorytmy",
-        "#Struktury_Danych",
-        "#Programowanie",
-        "#Bazy_Danych",
-        "#Systemy_Operacyjne",
-        "#Sieci_Komputerowe",
-        "#Grafika_Komputerowa",
-        "#Teoria_Obliczeń",
-        "#Bezpieczeństwo",
-        "#Inne"
-    ]
-}
-
 def get_tags_for_subject(subject):
-    return TAGS.get(subject, [])
+    """Pobierz nazwy kategorii dla danego przedmiotu"""
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT DISTINCT nazwa FROM kategoria WHERE subject = ?", (subject,))
+    kategorie = cur.fetchall()
+    cur.close()
+    conn.close()
+    return [k['nazwa'] for k in kategorie]
 
 def calculate_tag_stats(tasks, subject):
     tag_stats = {}
-    tags = get_tags_for_subject(subject)
+    # Pobierz wszystkie kategorie dla danego przedmiotu
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT DISTINCT nazwa FROM kategoria WHERE subject = ?", (subject,))
+    kategorie = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    tags = [k['nazwa'] for k in kategorie]
+    
     for tag in tags:
         total = 0
         solved = 0
         for task in tasks:
-            if task.get('subject', 'matematyka') == subject and tag in task['tags']:
+            if task.get('subject', 'matematyka') == subject and tag in task.get('tags', []):
                 total += 1
                 if task['solved']:
                     solved += 1
@@ -231,12 +268,30 @@ def calculate_tag_stats(tasks, subject):
         }
     return tag_stats
 
-import plotly.graph_objects as go
-
 def create_radar_chart(tag_stats, subject):
+    import plotly.graph_objects as go
+    
     tags = get_tags_for_subject(subject)
+    
+    if not tags:
+        # Jeśli brak kategorii, zwróć pusty wykres
+        fig = go.Figure()
+        fig.update_layout(
+            title=f'Brak kategorii dla przedmiotu: {subject.capitalize()}',
+            xaxis={'visible': False},
+            yaxis={'visible': False},
+            annotations=[{
+                'text': 'Brak kategorii',
+                'xref': 'paper',
+                'yref': 'paper',
+                'showarrow': False,
+                'font': {'size': 28}
+            }]
+        )
+        return fig
+    
     num_tags = len(tags)
-    values = [tag_stats[tag]['success_rate'] for tag in tags]
+    values = [tag_stats.get(tag, {'success_rate': 0})['success_rate'] for tag in tags]
     values += values[:1]
     
     # Create beautiful gradient colors for the chart
@@ -250,7 +305,7 @@ def create_radar_chart(tag_stats, subject):
     # Background circle
     fig.add_trace(go.Scatterpolar(
         r=[1] * (num_tags + 1),
-        theta=[tag.replace('_', ' ') for tag in tags] + [tags[0].replace('_', ' ')],
+        theta=tags + [tags[0]],
         fill='toself',
         fillcolor='rgba(102, 126, 234, 0.05)',
         line=dict(color='rgba(102, 126, 234, 0.1)', width=1),
@@ -262,7 +317,7 @@ def create_radar_chart(tag_stats, subject):
     # Main data trace with gradient effect
     fig.add_trace(go.Scatterpolar(
         r=values,
-        theta=[tag.replace('_', ' ') for tag in tags] + [tags[0].replace('_', ' ')],
+        theta=tags + [tags[0]],
         fill='toself',
         fillcolor='rgba(102, 126, 234, 0.2)',
         line=dict(color='#667eea', width=3),
@@ -273,9 +328,10 @@ def create_radar_chart(tag_stats, subject):
     # Individual points with different colors
     for i, tag in enumerate(tags):
         color = colors[i % len(colors)]
+        tag_data = tag_stats.get(tag, {'solved': 0, 'total': 0, 'success_rate': 0})
         fig.add_trace(go.Scatterpolar(
             r=[values[i]],
-            theta=[tag.replace('_', ' ')],
+            theta=[tag],
             mode='markers',
             marker=dict(
                 size=15,
@@ -284,8 +340,8 @@ def create_radar_chart(tag_stats, subject):
                 line=dict(width=3, color='white'),
                 symbol='circle'
             ),
-            name=tag.replace('_', ' '),
-            text=f"{tag.replace('_', ' ')}<br>Rozwiązane: {tag_stats[tag]['solved']}/{tag_stats[tag]['total']}<br>Skuteczność: {tag_stats[tag]['success_rate']*100:.1f}%",
+            name=tag,
+            text=f"{tag}<br>Rozwiązane: {tag_data['solved']}/{tag_data['total']}<br>Skuteczność: {tag_data['success_rate']*100:.1f}%",
             hoverinfo='text',
             showlegend=False
         ))
@@ -336,16 +392,36 @@ def create_radar_chart(tag_stats, subject):
 
 def create_stats_summary(tag_stats, subject):
     tags = get_tags_for_subject(subject)
-    sorted_tags = sorted(tags, key=lambda x: tag_stats[x]['success_rate'], reverse=True)
+    
+    if not tags:
+        return html.Div("Brak kategorii do wyświetlenia", style={
+            'textAlign': 'center',
+            'padding': '40px',
+            'fontSize': '18px',
+            'color': LIGHT_THEME['placeholder']
+        })
+    
+    # Filtruj tylko kategorie z danymi
+    tags_with_data = [tag for tag in tags if tag_stats.get(tag, {'total': 0})['total'] > 0]
+    
+    if not tags_with_data:
+        return html.Div("Brak danych do wyświetlenia", style={
+            'textAlign': 'center',
+            'padding': '40px',
+            'fontSize': '18px',
+            'color': LIGHT_THEME['placeholder']
+        })
+    
+    sorted_tags = sorted(tags_with_data, key=lambda x: tag_stats.get(x, {'success_rate': 0})['success_rate'], reverse=True)
     
     # Calculate overall statistics
-    total_tasks = sum(tag_stats[tag]['total'] for tag in tags)
-    total_solved = sum(tag_stats[tag]['solved'] for tag in tags)
+    total_tasks = sum(tag_stats.get(tag, {'total': 0})['total'] for tag in tags_with_data)
+    total_solved = sum(tag_stats.get(tag, {'solved': 0})['solved'] for tag in tags_with_data)
     overall_success = total_solved / total_tasks if total_tasks > 0 else 0
     
     # Get best and worst performing tags
-    best_tags = [tag for tag in sorted_tags[:3] if tag_stats[tag]['total'] > 0]
-    worst_tags = [tag for tag in sorted_tags[-3:] if tag_stats[tag]['total'] > 0]
+    best_tags = sorted_tags[:3]
+    worst_tags = sorted_tags[-3:]
     worst_tags.reverse()  # Show worst first
     
     summary = html.Div([
@@ -405,7 +481,7 @@ def create_stats_summary(tag_stats, subject):
                 }),
                 html.Div([
                     html.Div("🏷️", style={'fontSize': '32px', 'marginBottom': '8px'}),
-                    html.H4(f"{len([t for t in tags if tag_stats[t]['total'] > 0])}", style={
+                    html.H4(f"{len(tags_with_data)}", style={
                         'margin': '0',
                         'fontSize': '32px',
                         'fontWeight': '800',
@@ -440,20 +516,20 @@ def create_stats_summary(tag_stats, subject):
                 html.Div([
                     html.Div([
                         html.Div([
-                            html.Span(f"🎯 {tag.replace('_', ' ')}", style={
+                            html.Span(f"🎯 {tag}", style={
                                 'fontWeight': '600',
                                 'fontSize': '16px',
                                 'color': LIGHT_THEME['text']
                             }),
                             html.Div([
                                 html.Div(style={
-                                    'width': f"{tag_stats[tag]['success_rate']*100}%",
+                                    'width': f"{tag_stats.get(tag, {'success_rate': 0})['success_rate']*100}%",
                                     'height': '8px',
                                     'background': 'linear-gradient(90deg, #2ecc71 0%, #27ae60 100%)',
                                     'borderRadius': '4px',
                                     'transition': 'width 0.5s ease'
                                 }),
-                                html.Span(f"{tag_stats[tag]['success_rate']*100:.1f}% ({tag_stats[tag]['solved']}/{tag_stats[tag]['total']})", style={
+                                html.Span(f"{tag_stats.get(tag, {'success_rate': 0})['success_rate']*100:.1f}% ({tag_stats.get(tag, {'solved': 0})['solved']}/{tag_stats.get(tag, {'total': 0})['total']})", style={
                                     'fontSize': '14px',
                                     'color': LIGHT_THEME['success'],
                                     'fontWeight': '600',
@@ -489,20 +565,20 @@ def create_stats_summary(tag_stats, subject):
                 html.Div([
                     html.Div([
                         html.Div([
-                            html.Span(f"📌 {tag.replace('_', ' ')}", style={
+                            html.Span(f"📌 {tag}", style={
                                 'fontWeight': '600',
                                 'fontSize': '16px',
                                 'color': LIGHT_THEME['text']
                             }),
                             html.Div([
                                 html.Div(style={
-                                    'width': f"{tag_stats[tag]['success_rate']*100}%",
+                                    'width': f"{tag_stats.get(tag, {'success_rate': 0})['success_rate']*100}%",
                                     'height': '8px',
                                     'background': 'linear-gradient(90deg, #e74c3c 0%, #c0392b 100%)',
                                     'borderRadius': '4px',
                                     'transition': 'width 0.5s ease'
                                 }),
-                                html.Span(f"{tag_stats[tag]['success_rate']*100:.1f}% ({tag_stats[tag]['solved']}/{tag_stats[tag]['total']})", style={
+                                html.Span(f"{tag_stats.get(tag, {'success_rate': 0})['success_rate']*100:.1f}% ({tag_stats.get(tag, {'solved': 0})['solved']}/{tag_stats.get(tag, {'total': 0})['total']})", style={
                                     'fontSize': '14px',
                                     'color': LIGHT_THEME['error'],
                                     'fontWeight': '600',
@@ -578,13 +654,13 @@ def create_stats_summary(tag_stats, subject):
                     ]),
                     html.Tbody([
                         html.Tr([
-                            html.Td(tag.replace('_', ' '), style={
+                            html.Td(tag, style={
                                 'padding': '16px', 
                                 'borderBottom': '1px solid #eee',
                                 'fontWeight': '600',
                                 'color': LIGHT_THEME['text']
                             }),
-                            html.Td(f"{tag_stats[tag]['solved']}/{tag_stats[tag]['total']}", style={
+                            html.Td(f"{tag_stats.get(tag, {'solved': 0})['solved']}/{tag_stats.get(tag, {'total': 0})['total']}", style={
                                 'textAlign': 'center', 
                                 'padding': '16px', 
                                 'borderBottom': '1px solid #eee',
@@ -592,9 +668,9 @@ def create_stats_summary(tag_stats, subject):
                                 'color': LIGHT_THEME['text']
                             }),
                             html.Td([
-                                html.Span(f"{tag_stats[tag]['success_rate']*100:.1f}%", style={
+                                html.Span(f"{tag_stats.get(tag, {'success_rate': 0})['success_rate']*100:.1f}%", style={
                                     'fontWeight': '700',
-                                    'color': LIGHT_THEME['success'] if tag_stats[tag]['success_rate'] > 0.6 else LIGHT_THEME['warning'] if tag_stats[tag]['success_rate'] > 0.3 else LIGHT_THEME['error']
+                                    'color': LIGHT_THEME['success'] if tag_stats.get(tag, {'success_rate': 0})['success_rate'] > 0.6 else LIGHT_THEME['warning'] if tag_stats.get(tag, {'success_rate': 0})['success_rate'] > 0.3 else LIGHT_THEME['error']
                                 })
                             ], style={
                                 'textAlign': 'center', 
@@ -604,9 +680,9 @@ def create_stats_summary(tag_stats, subject):
                             html.Td([
                                 html.Div([
                                     html.Div(style={
-                                        'width': f"{tag_stats[tag]['success_rate']*100}%",
+                                        'width': f"{tag_stats.get(tag, {'success_rate': 0})['success_rate']*100}%",
                                         'height': '12px',
-                                        'background': f"linear-gradient(90deg, {LIGHT_THEME['success']} 0%, {LIGHT_THEME['success']}cc 100%)" if tag_stats[tag]['success_rate'] > 0.6 else f"linear-gradient(90deg, {LIGHT_THEME['warning']} 0%, {LIGHT_THEME['warning']}cc 100%)" if tag_stats[tag]['success_rate'] > 0.3 else f"linear-gradient(90deg, {LIGHT_THEME['error']} 0%, {LIGHT_THEME['error']}cc 100%)",
+                                        'background': f"linear-gradient(90deg, {LIGHT_THEME['success']} 0%, {LIGHT_THEME['success']}cc 100%)" if tag_stats.get(tag, {'success_rate': 0})['success_rate'] > 0.6 else f"linear-gradient(90deg, {LIGHT_THEME['warning']} 0%, {LIGHT_THEME['warning']}cc 100%)" if tag_stats.get(tag, {'success_rate': 0})['success_rate'] > 0.3 else f"linear-gradient(90deg, {LIGHT_THEME['error']} 0%, {LIGHT_THEME['error']}cc 100%)",
                                         'borderRadius': '6px',
                                         'transition': 'width 0.5s ease'
                                     })
@@ -624,7 +700,7 @@ def create_stats_summary(tag_stats, subject):
                         ], style={
                             'transition': 'background-color 0.2s ease',
                             'background': 'white'
-                        }) for tag in sorted_tags if tag_stats[tag]['total'] > 0
+                        }) for tag in sorted_tags
                     ])
                 ], style={
                     'width': '100%', 
@@ -647,3 +723,154 @@ def create_stats_summary(tag_stats, subject):
         'boxShadow': LIGHT_THEME['shadow']
     })
     return summary
+
+# Usunięto domyślne kategorie - użytkownicy dodają własne kategorie przez interfejs
+
+def clear_all_categories():
+    """Wyczyść wszystkie kategorie z bazy danych"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Najpierw usuń powiązania zadań z kategoriami
+    cur.execute("DELETE FROM zadanie_kategoria")
+    
+    # Następnie usuń wszystkie kategorie
+    cur.execute("DELETE FROM kategoria")
+    
+    conn.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+    conn.close()
+    
+    return rows_affected
+
+def clear_all_tasks():
+    """Wyczyść wszystkie zadania z bazy danych"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Usuń powiązania zadań z kategoriami
+    cur.execute("DELETE FROM zadanie_kategoria")
+    
+    # Usuń wszystkie zadania
+    cur.execute("DELETE FROM Zadanie")
+    
+    # Usuń wszystkie zestawy
+    cur.execute("DELETE FROM zestaw_matura")
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return True
+
+def clear_entire_database():
+    """Wyczyść całą bazę danych"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        # Usuń wszystko w odpowiedniej kolejności (ze względu na klucze obce)
+        cur.execute("DELETE FROM zadanie_kategoria")
+        cur.execute("DELETE FROM Zadanie")
+        cur.execute("DELETE FROM zestaw_matura")
+        cur.execute("DELETE FROM kategoria")
+        
+        conn.commit()
+        result = True
+    except Exception as e:
+        conn.rollback()
+        result = False
+    finally:
+        cur.close()
+        conn.close()
+    
+    return result
+
+def get_kategoria_by_id(kategoria_id):
+    """Pobierz kategorię po ID"""
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM kategoria WHERE id = ?", (kategoria_id,))
+    kategoria = cur.fetchone()
+    cur.close()
+    conn.close()
+    return kategoria
+
+def get_kategorie_by_ids(kategorie_ids):
+    """Pobierz kategorie po listie ID"""
+    if not kategorie_ids:
+        return []
+    
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    placeholders = ','.join(['?' for _ in kategorie_ids])
+    cur.execute(f"SELECT * FROM kategoria WHERE id IN ({placeholders})", kategorie_ids)
+    kategorie = cur.fetchall()
+    cur.close()
+    conn.close()
+    return kategorie
+
+def get_kategorie_for_subject(subject):
+    """Pobierz wszystkie kategorie dla danego przedmiotu"""
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT * FROM kategoria WHERE subject = ?", (subject,))
+    kategorie = cur.fetchall()
+    cur.close()
+    conn.close()
+    return kategorie
+
+def get_kategorie_for_zestaw(zestaw_id):
+    """Pobierz wszystkie kategorie dla zestawu (na podstawie przedmiotu zestawu)"""
+    # Najpierw pobierz przedmiot zestawu
+    zestaw = fetch_zestaw_by_id(zestaw_id)
+    if not zestaw:
+        return []
+    
+    # Następnie pobierz kategorie dla tego przedmiotu
+    return get_kategorie_for_subject(zestaw['subject'])
+
+def add_new_kategoria(nazwa, subject):
+    """Dodaj nową kategorię do bazy danych dla danego przedmiotu"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Sprawdź czy kategoria już istnieje dla tego przedmiotu
+    cur.execute(
+        "SELECT id FROM kategoria WHERE nazwa = ? AND subject = ?", 
+        (nazwa, subject)
+    )
+    existing = cur.fetchone()
+    
+    if existing:
+        cur.close()
+        conn.close()
+        return None  # Kategoria już istnieje
+    
+    # Dodaj nową kategorię (bez zestaw_matura_id)
+    cur.execute(
+        "INSERT INTO kategoria (nazwa, subject) VALUES (?, ?)",
+        (nazwa, subject)
+    )
+    conn.commit()
+    kategoria_id = cur.lastrowid
+    cur.close()
+    conn.close()
+    return kategoria_id
+
+def delete_kategoria(kategoria_id):
+    """Usuń kategorię z bazy danych"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    # Usuń powiązania z zadaniami
+    cur.execute("DELETE FROM zadanie_kategoria WHERE kategoria_id = ?", (kategoria_id,))
+    
+    # Usuń kategorię
+    cur.execute("DELETE FROM kategoria WHERE id = ?", (kategoria_id,))
+    conn.commit()
+    rows_affected = cur.rowcount
+    cur.close()
+    conn.close()
+    return rows_affected > 0
