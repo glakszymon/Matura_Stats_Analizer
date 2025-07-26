@@ -1,7 +1,7 @@
 import dash
 from dash import dcc, html, Input, Output, State, ALL
 from theme import LIGHT_THEME
-from layouts import get_sidebar, get_home_layout, get_stats_layout, get_stats_layout_it, get_manage_categories_layout
+from layouts import get_sidebar, get_home_layout, get_stats_layout, get_stats_layout_it, get_stats_layout_polski, get_stats_layout_angielski, get_manage_categories_layout, get_settings_layout
 from callbacks import register_callbacks
 from template_loader import load_html_template
 
@@ -118,8 +118,10 @@ app.layout = html.Div([
                         dcc.Dropdown(
                             id='subject-dropdown',
                             options=[
-                                {'label': '📊 Matematyka', 'value': 'matematyka'},
-                                {'label': '💻 Informatyka', 'value': 'informatyka'}
+                                {'label': '∑ Matematyka', 'value': 'matematyka'},
+                                {'label': '💻 Informatyka', 'value': 'informatyka'},
+                                {'label': '🇵🇱 Język Polski', 'value': 'polski'},
+                                {'label': '🇬🇧 Język Angielski', 'value': 'angielski'}
                             ],
                             value='matematyka',
                             style={
@@ -467,8 +469,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='edit-set-subject',
                         options=[
-                            {'label': '📊 Matematyka', 'value': 'matematyka'},
-                            {'label': '💻 Informatyka', 'value': 'informatyka'}
+                            {'label': '∑ Matematyka', 'value': 'matematyka'},
+                            {'label': '💻 Informatyka', 'value': 'informatyka'},
+                            {'label': '🇵🇱 Język Polski', 'value': 'polski'},
+                            {'label': '🇬🇧 Język Angielski', 'value': 'angielski'}
                         ],
                         style={
                             'width': '100%',
@@ -973,6 +977,269 @@ app.layout = html.Div([
     dcc.Store(id='add-task-to-set-store', data={}),
     dcc.Store(id='delete-task-store', data={}),
     dcc.Store(id='keyboard-store', data={'keys': []}),
+    dcc.Store(id='theme-store', data={'theme': 'light'}),
+    
+    # Confirmation modals for database operations
+    html.Div(
+        id='confirm-clear-categories-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div("⚠️", style={
+                        'fontSize': '64px',
+                        'textAlign': 'center',
+                        'marginBottom': '20px',
+                        'color': LIGHT_THEME['warning']
+                    }),
+                    html.H3("Czy na pewno chcesz usunąć wszystkie kategorie?", style={
+                        'marginBottom': '16px',
+                        'fontWeight': '800',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '24px',
+                        'textAlign': 'center'
+                    }),
+                    html.P("Ta operacja usunie wszystkie kategorie z bazy danych!", style={
+                        'textAlign': 'center',
+                        'color': LIGHT_THEME['error'],
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    html.P("Ta operacja jest nieodwracalna!", style={
+                        'textAlign': 'center',
+                        'color': LIGHT_THEME['error'],
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("🗑️", style={'marginRight': '8px'}),
+                            'Tak, usuń wszystkie kategorie'
+                        ],
+                        id='confirm-clear-categories-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['warning'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginRight': '16px'
+                        }),
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Anuluj'
+                        ],
+                        id='cancel-clear-categories-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center'})
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '500px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow_strong'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
+    
+    html.Div(
+        id='confirm-clear-tasks-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div("⚠️", style={
+                        'fontSize': '64px',
+                        'textAlign': 'center',
+                        'marginBottom': '20px',
+                        'color': LIGHT_THEME['error']
+                    }),
+                    html.H3("Czy na pewno chcesz usunąć wszystkie zadania?", style={
+                        'marginBottom': '16px',
+                        'fontWeight': '800',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '24px',
+                        'textAlign': 'center'
+                    }),
+                    html.P("Ta operacja usunie wszystkie zadania i zestawy z bazy danych!", style={
+                        'textAlign': 'center',
+                        'color': LIGHT_THEME['error'],
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    html.P("Ta operacja jest nieodwracalna!", style={
+                        'textAlign': 'center',
+                        'color': LIGHT_THEME['error'],
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("🗑️", style={'marginRight': '8px'}),
+                            'Tak, usuń wszystkie zadania'
+                        ],
+                        id='confirm-clear-tasks-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['error'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginRight': '16px'
+                        }),
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Anuluj'
+                        ],
+                        id='cancel-clear-tasks-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center'})
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '500px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow_strong'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
+    
+    html.Div(
+        id='confirm-clear-all-modal',
+        children=[
+            html.Div([
+                html.Div([
+                    html.Div("💣", style={
+                        'fontSize': '64px',
+                        'textAlign': 'center',
+                        'marginBottom': '20px',
+                        'color': '#8b0000'
+                    }),
+                    html.H3("OSTATECZNE OSTRZEŻENIE!", style={
+                        'marginBottom': '16px',
+                        'fontWeight': '800',
+                        'color': LIGHT_THEME['text'],
+                        'fontSize': '24px',
+                        'textAlign': 'center'
+                    }),
+                    html.P("Ta operacja usunie CAŁĄ bazę danych - wszystkie zadania, zestawy i kategorie!", style={
+                        'textAlign': 'center',
+                        'color': '#8b0000',
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    html.P("Ta operacja jest NIEODWRACALNA!", style={
+                        'textAlign': 'center',
+                        'color': '#8b0000',
+                        'fontSize': '16px',
+                        'fontWeight': '600',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    html.Div([
+                        html.Button([
+                            html.Span("💣", style={'marginRight': '8px'}),
+                            'TAK, USUŃ WSZYSTKO'
+                        ],
+                        id='confirm-clear-all-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': '#8b0000',
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'marginRight': '16px'
+                        }),
+                        html.Button([
+                            html.Span("❌", style={'marginRight': '8px'}),
+                            'Anuluj'
+                        ],
+                        id='cancel-clear-all-button',
+                        n_clicks=0,
+                        style={
+                            'padding': '16px 36px',
+                            'background': LIGHT_THEME['placeholder'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': LIGHT_THEME['radius'],
+                            'cursor': 'pointer',
+                            'fontWeight': '700',
+                            'fontSize': '16px',
+                            'boxShadow': LIGHT_THEME['shadow']
+                        })
+                    ], style={'textAlign': 'center'})
+                ], style={
+                    'background': LIGHT_THEME['content_bg'],
+                    'padding': '40px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'maxWidth': '500px',
+                    'width': '90%',
+                    'boxShadow': LIGHT_THEME['shadow_strong'],
+                    'backdropFilter': 'blur(20px)',
+                    'border': f"1px solid {LIGHT_THEME['border']}",
+                    'margin': '0 auto'
+                })
+            ], className='modal-content')
+        ],
+        className='modal-overlay',
+        style={'display': 'none'}
+    ),
 ])
 
 register_callbacks(app)

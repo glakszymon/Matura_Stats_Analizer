@@ -16,11 +16,36 @@
                 box-sizing: border-box;
             }
             
+            /* CSS Variables for themes */
+            :root {
+                --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                --sidebar-bg: linear-gradient(135deg, #232526 0%, #414345 100%);
+                --content-bg: #ffffffcc;
+                --text-color: #22223b;
+                --text-light: #ffffff;
+                --border-color: #e0e0e0;
+                --shadow: 0 4px 24px rgba(80, 112, 255, 0.10);
+                --shadow-strong: 0 8px 32px rgba(80, 112, 255, 0.20);
+            }
+            
+            .theme-dark {
+                --bg-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d30 100%);
+                --sidebar-bg: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+                --content-bg: #1e1e1e99;
+                --text-color: #e0e0e0;
+                --text-light: #ffffff;
+                --border-color: #404040;
+                --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+                --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.6);
+            }
+
             body {
                 font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: var(--bg-gradient);
                 min-height: 100vh;
                 overflow-x: hidden;
+                color: var(--text-color);
+                transition: all 0.3s ease;
             }
             
             /* Responsive base styles */
@@ -576,6 +601,26 @@
             // Clear pressed keys when window loses focus
             window.addEventListener('blur', function() {
                 pressedKeys.clear();
+            });
+            
+            // Theme switching functionality
+            window.setTheme = function(theme) {
+                const body = document.body;
+                if (theme === 'dark') {
+                    body.classList.add('theme-dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    body.classList.remove('theme-dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            };
+            
+            // Load theme on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                if (savedTheme === 'dark') {
+                    document.body.classList.add('theme-dark');
+                }
             });
         </script>
     </body>

@@ -13,6 +13,7 @@ from utils import (
     clear_all_categories, clear_all_tasks, clear_entire_database
 )
 from theme import LIGHT_THEME
+from layouts import get_settings_layout
 
 # --- CALLBACKS ---
 def register_callbacks(app):
@@ -56,7 +57,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def display_page(pathname):
-        from layouts import get_home_layout, get_stats_layout, get_stats_layout_it, get_math_tasks_layout, get_manage_categories_layout
+        from layouts import get_home_layout, get_stats_layout, get_stats_layout_it, get_stats_layout_polski, get_stats_layout_angielski, get_math_tasks_layout, get_manage_categories_layout, get_settings_layout
         if pathname == '/':
             return get_home_layout()
         elif pathname == '/math-tasks':
@@ -65,8 +66,14 @@ def register_callbacks(app):
             return get_stats_layout(subject="matematyka")
         elif pathname == '/stats-it':
             return get_stats_layout_it()
+        elif pathname == '/stats-polski':
+            return get_stats_layout_polski()
+        elif pathname == '/stats-angielski':
+            return get_stats_layout_angielski()
         elif pathname == '/manage-categories':
             return get_manage_categories_layout()
+        elif pathname == '/settings':
+            return get_settings_layout()
         else:
             return html.Div("404: Nie znaleziono strony", style={'padding': '40px', 'fontSize': '24px'})
 
@@ -615,6 +622,68 @@ def register_callbacks(app):
         summary = create_stats_summary(tag_stats, 'informatyka')
         return fig, summary
 
+    @app.callback(
+        Output('stats-graph-polski', 'figure'),
+        Output('stats-summary-polski', 'children'),
+        Input('math-tasks-store', 'data')
+    )
+    def update_stats_polski(tasks):
+        zadania = fetch_all_zadania_with_tags()
+        polski_tasks = [z for z in zadania if z.get('subject', 'matematyka') == 'polski']
+        
+        if not polski_tasks:
+            import plotly.graph_objects as go
+            empty_fig = go.Figure()
+            empty_fig.update_layout(
+                title='Brak danych do wyświetlenia',
+                xaxis={'visible': False},
+                yaxis={'visible': False},
+                annotations=[{
+                    'text': 'Brak danych',
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'showarrow': False,
+                    'font': {'size': 28}
+                }]
+            )
+            return empty_fig, "Brak danych do wyświetlenia"
+        
+        tag_stats = calculate_tag_stats(polski_tasks, 'polski')
+        fig = create_radar_chart(tag_stats, 'polski')
+        summary = create_stats_summary(tag_stats, 'polski')
+        return fig, summary
+
+    @app.callback(
+        Output('stats-graph-angielski', 'figure'),
+        Output('stats-summary-angielski', 'children'),
+        Input('math-tasks-store', 'data')
+    )
+    def update_stats_angielski(tasks):
+        zadania = fetch_all_zadania_with_tags()
+        angielski_tasks = [z for z in zadania if z.get('subject', 'matematyka') == 'angielski']
+        
+        if not angielski_tasks:
+            import plotly.graph_objects as go
+            empty_fig = go.Figure()
+            empty_fig.update_layout(
+                title='Brak danych do wyświetlenia',
+                xaxis={'visible': False},
+                yaxis={'visible': False},
+                annotations=[{
+                    'text': 'Brak danych',
+                    'xref': 'paper',
+                    'yref': 'paper',
+                    'showarrow': False,
+                    'font': {'size': 28}
+                }]
+            )
+            return empty_fig, "Brak danych do wyświetlenia"
+        
+        tag_stats = calculate_tag_stats(angielski_tasks, 'angielski')
+        fig = create_radar_chart(tag_stats, 'angielski')
+        summary = create_stats_summary(tag_stats, 'angielski')
+        return fig, summary
+
     # Edit set modal visibility
     @app.callback(
         [Output('edit-set-modal', 'style'),
@@ -729,7 +798,7 @@ def register_callbacks(app):
                 
                 return (
                     {'display': 'block'},
-                    f"📚 Zestaw: {zestaw['name']} | 🔢 Numer zadania: {next_number}",
+                    f"🇵🇱 Zestaw: {zestaw['name']} | 🔢 Numer zadania: {next_number}",
                     tag_options,
                     {'set_id': set_id, 'set_name': zestaw['name'], 'subject': subject, 'next_number': next_number},
                     '',
@@ -867,9 +936,9 @@ def register_callbacks(app):
         
         # Get categories based on filter
         if filter_subject == 'all' or not filter_subject:
-            # Get all categories for both subjects
+            # Get all categories for all subjects
             all_categories = []
-            for subject in ['matematyka', 'informatyka']:
+            for subject in ['matematyka', 'informatyka', 'polski', 'angielski']:
                 categories = get_kategorie_for_subject(subject)
                 all_categories.extend(categories)
         else:
@@ -965,9 +1034,9 @@ def register_callbacks(app):
         
         # Return updated list (same logic as display_categories_list)
         if filter_subject == 'all' or not filter_subject:
-            # Get all categories for both subjects
+            # Get all categories for all subjects
             all_categories = []
-            for subject in ['matematyka', 'informatyka']:
+            for subject in ['matematyka', 'informatyka', 'polski', 'angielski']:
                 categories = get_kategorie_for_subject(subject)
                 all_categories.extend(categories)
         else:
@@ -1133,7 +1202,171 @@ def register_callbacks(app):
                                   style={'color': LIGHT_THEME['error']})
                                   
         except Exception as e:
-            return html.Div(f"❌ Błąd: {str(e)}", 
+            return html.Div(f"❌ Błąd: {str(e)}",
                           style={'color': LIGHT_THEME['error']})
-        
+
         return ""
+
+    # === SETTINGS CALLBACKS ===
+    
+    # Settings modal visibility callbacks
+    @app.callback(
+        Output('confirm-clear-categories-modal', 'style'),
+        [Input('settings-clear-categories-button', 'n_clicks'),
+         Input('cancel-clear-categories-button', 'n_clicks'),
+         Input('confirm-clear-categories-button', 'n_clicks')],
+        prevent_initial_call=True
+    )
+    def toggle_clear_categories_modal(open_clicks, cancel_clicks, confirm_clicks):
+        ctx = callback_context
+        if not ctx.triggered:
+            return {'display': 'none'}
+        
+        trigger = ctx.triggered[0]['prop_id']
+        
+        if 'settings-clear-categories-button' in trigger and open_clicks:
+            return {'display': 'block'}
+        elif 'cancel-clear-categories-button' in trigger or 'confirm-clear-categories-button' in trigger:
+            return {'display': 'none'}
+        
+        return {'display': 'none'}
+
+    @app.callback(
+        Output('confirm-clear-tasks-modal', 'style'),
+        [Input('settings-clear-tasks-button', 'n_clicks'),
+         Input('cancel-clear-tasks-button', 'n_clicks'),
+         Input('confirm-clear-tasks-button', 'n_clicks')],
+        prevent_initial_call=True
+    )
+    def toggle_clear_tasks_modal(open_clicks, cancel_clicks, confirm_clicks):
+        ctx = callback_context
+        if not ctx.triggered:
+            return {'display': 'none'}
+        
+        trigger = ctx.triggered[0]['prop_id']
+        
+        if 'settings-clear-tasks-button' in trigger and open_clicks:
+            return {'display': 'block'}
+        elif 'cancel-clear-tasks-button' in trigger or 'confirm-clear-tasks-button' in trigger:
+            return {'display': 'none'}
+        
+        return {'display': 'none'}
+
+    @app.callback(
+        Output('confirm-clear-all-modal', 'style'),
+        [Input('settings-clear-all-button', 'n_clicks'),
+         Input('cancel-clear-all-button', 'n_clicks'),
+         Input('confirm-clear-all-button', 'n_clicks')],
+        prevent_initial_call=True
+    )
+    def toggle_clear_all_modal(open_clicks, cancel_clicks, confirm_clicks):
+        ctx = callback_context
+        if not ctx.triggered:
+            return {'display': 'none'}
+        
+        trigger = ctx.triggered[0]['prop_id']
+        
+        if 'settings-clear-all-button' in trigger and open_clicks:
+            return {'display': 'block'}
+        elif 'cancel-clear-all-button' in trigger or 'confirm-clear-all-button' in trigger:
+            return {'display': 'none'}
+        
+        return {'display': 'none'}
+
+    # Database clearing operations
+    @app.callback(
+        [Output('settings-message', 'children'),
+         Output('math-tasks-store', 'data', allow_duplicate=True)],
+        Input('confirm-clear-categories-button', 'n_clicks'),
+        State('math-tasks-store', 'data'),
+        prevent_initial_call=True
+    )
+    def clear_categories_settings(n_clicks, tasks):
+        if n_clicks == 0:
+            return no_update, no_update
+        
+        try:
+            rows_affected = clear_all_categories()
+            return html.Div("✅ Wszystkie kategorie zostały usunięte", 
+                           style={'color': LIGHT_THEME['success']}), tasks
+        except Exception as e:
+            return html.Div(f"❌ Błąd podczas usuwania kategorii: {str(e)}", 
+                           style={'color': LIGHT_THEME['error']}), tasks
+
+    @app.callback(
+        [Output('settings-message', 'children', allow_duplicate=True),
+         Output('math-tasks-store', 'data', allow_duplicate=True)],
+        Input('confirm-clear-tasks-button', 'n_clicks'),
+        prevent_initial_call=True
+    )
+    def clear_tasks_settings(n_clicks):
+        if n_clicks == 0:
+            return no_update, no_update
+        
+        try:
+            rows_affected = clear_all_tasks()
+            return html.Div("✅ Wszystkie zadania zostały usunięte", 
+                           style={'color': LIGHT_THEME['success']}), []
+        except Exception as e:
+            return html.Div(f"❌ Błąd podczas usuwania zadań: {str(e)}", 
+                           style={'color': LIGHT_THEME['error']}), no_update
+
+    @app.callback(
+        [Output('settings-message', 'children', allow_duplicate=True),
+         Output('math-tasks-store', 'data', allow_duplicate=True)],
+        Input('confirm-clear-all-button', 'n_clicks'),
+        prevent_initial_call=True
+    )
+    def clear_all_settings(n_clicks):
+        if n_clicks == 0:
+            return no_update, no_update
+        
+        try:
+            rows_affected = clear_entire_database()
+            return html.Div("✅ Cała baza danych została wyczyszczona", 
+                           style={'color': LIGHT_THEME['success']}), []
+        except Exception as e:
+            return html.Div(f"❌ Błąd podczas czyszczenia bazy danych: {str(e)}", 
+                           style={'color': LIGHT_THEME['error']}), no_update
+
+    # Theme switching callback with dynamic layout update
+    @app.callback(
+        [Output('theme-store', 'data'),
+         Output('settings-message', 'children', allow_duplicate=True),
+         Output('page-content', 'children', allow_duplicate=True)],
+        Input('theme-selector', 'value'),
+        [State('url', 'pathname')],
+        prevent_initial_call=True
+    )
+    def update_theme(selected_theme, pathname):
+        # Update theme store
+        theme_data = {'theme': selected_theme}
+        
+        # Create success message
+        message = html.Div([
+            f"🎨 Motyw zmieniony na: {'Jasny' if selected_theme == 'light' else 'Ciemny'}",
+            html.Script(f"window.setTheme('{selected_theme}');")
+        ], style={'color': LIGHT_THEME['success']})
+        
+        # If we're on settings page, refresh it with new theme
+        if pathname == '/settings':
+            new_layout = get_settings_layout(selected_theme)
+            return theme_data, message, new_layout
+        else:
+            return theme_data, message, no_update
+
+    # Clientside callback to load theme from localStorage
+    app.clientside_callback(
+        """
+        function(pathname) {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            if (window.setTheme) {
+                window.setTheme(savedTheme);
+            }
+            return savedTheme;
+        }
+        """,
+        Output('theme-selector', 'value'),
+        Input('url', 'pathname'),
+        prevent_initial_call=False
+    )

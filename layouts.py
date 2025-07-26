@@ -1,6 +1,6 @@
 # layouts.py
 from dash import dcc, html
-from theme import LIGHT_THEME
+from theme import LIGHT_THEME, get_theme
 # Usunięto import DEFAULT_CATEGORIES - nie są już używane
 
 def get_sidebar():
@@ -71,7 +71,7 @@ def get_sidebar():
             ),
             html.Li(
                 dcc.Link([
-                    html.Span("📊", style={'marginRight': '12px', 'fontSize': '20px'}),
+                    html.Span("∑", style={'marginRight': '12px', 'fontSize': '20px'}),
                     "Statystyki Matematyka"
                 ], href="/stats", style={
                     'color': LIGHT_THEME['text_light'], 
@@ -114,9 +114,72 @@ def get_sidebar():
             ),
             html.Li(
                 dcc.Link([
+                    html.Span("🇵🇱", style={'marginRight': '12px', 'fontSize': '20px'}),
+                    "Statystyki Polski"
+                ], href="/stats-polski", style={
+                    'color': LIGHT_THEME['text_light'], 
+                    'fontWeight': '600', 
+                    'fontSize': '16px', 
+                    'textDecoration': 'none', 
+                    'transition': 'all 0.3s ease',
+                    'display': 'flex',
+                    'alignItems': 'center'
+                }),
+                style={
+                    'padding': '16px 24px', 
+                    'transition': 'all 0.3s ease',
+                    'borderRadius': '12px',
+                    'margin': '4px 12px'
+                },
+                className='sidebar-item'
+            ),
+            html.Li(
+                dcc.Link([
+                    html.Span("🇬🇧", style={'marginRight': '12px', 'fontSize': '20px'}),
+                    "Statystyki Angielski"
+                ], href="/stats-angielski", style={
+                    'color': LIGHT_THEME['text_light'], 
+                    'fontWeight': '600', 
+                    'fontSize': '16px', 
+                    'textDecoration': 'none', 
+                    'transition': 'all 0.3s ease',
+                    'display': 'flex',
+                    'alignItems': 'center'
+                }),
+                style={
+                    'padding': '16px 24px', 
+                    'transition': 'all 0.3s ease',
+                    'borderRadius': '12px',
+                    'margin': '4px 12px'
+                },
+                className='sidebar-item'
+            ),
+            html.Li(
+                dcc.Link([
                     html.Span("🏷️", style={'marginRight': '12px', 'fontSize': '20px'}),
                     "Zarządzaj Kategoriami"
                 ], href="/manage-categories", style={
+                    'color': LIGHT_THEME['text_light'], 
+                    'fontWeight': '600', 
+                    'fontSize': '16px', 
+                    'textDecoration': 'none', 
+                    'transition': 'all 0.3s ease',
+                    'display': 'flex',
+                    'alignItems': 'center'
+                }),
+                style={
+                    'padding': '16px 24px', 
+                    'transition': 'all 0.3s ease',
+                    'borderRadius': '12px',
+                    'margin': '4px 12px'
+                },
+                className='sidebar-item'
+            ),
+            html.Li(
+                dcc.Link([
+                    html.Span("⚙️", style={'marginRight': '12px', 'fontSize': '20px'}),
+                    "Ustawienia"
+                ], href="/settings", style={
                     'color': LIGHT_THEME['text_light'], 
                     'fontWeight': '600', 
                     'fontSize': '16px', 
@@ -192,7 +255,7 @@ def get_home_layout():
                 # Feature cards - now responsive
                 html.Div([
                     html.Div([
-                        html.Div("📚", style={'fontSize': '48px', 'marginBottom': '16px'}),
+                        html.Div("🇵🇱", style={'fontSize': '48px', 'marginBottom': '16px'}),
                         html.H3("Organizuj zadania", style={
                             'color': LIGHT_THEME['text'],
                             'fontWeight': '700',
@@ -278,7 +341,7 @@ def get_home_layout():
 def get_math_tasks_layout():
     return html.Div([
         html.Div([
-            html.H1("📚 Zadania Maturalne", style={
+            html.H1("🇵🇱 Zadania Maturalne", style={
                 'textAlign': 'center', 
                 'color': LIGHT_THEME['text'], 
                 'fontWeight': '800', 
@@ -392,7 +455,14 @@ def get_math_tasks_list(tasks):
         completion_rate = solved_tasks / total_tasks if total_tasks > 0 else 0
         
         # Subject emoji
-        subject_emoji = "📊" if set_data['subject'] == 'matematyka' else "💻"
+        if set_data['subject'] == 'matematyka':
+            subject_emoji = "📊"
+        elif set_data['subject'] == 'informatyka':
+            subject_emoji = "💻"
+        elif set_data['subject'] == 'polski':
+            subject_emoji = "🇵🇱"
+        else:  # angielski
+            subject_emoji = "🇬🇧"
         
         task_rows = []
         for task in sorted_tasks:
@@ -738,8 +808,18 @@ def get_stats_layout(subject="matematyka"):
     zestawy_filtered = [z for z in zestawy if z.get('subject', 'matematyka') == subject]
     
     # Subject specific styling
-    subject_emoji = "📊" if subject == "matematyka" else "💻"
-    subject_color = LIGHT_THEME['gradient_primary'] if subject == "matematyka" else LIGHT_THEME['gradient_secondary']
+    if subject == "matematyka":
+        subject_emoji = "📊"
+        subject_color = LIGHT_THEME['gradient_primary']
+    elif subject == "informatyka":
+        subject_emoji = "💻"
+        subject_color = LIGHT_THEME['gradient_secondary']
+    elif subject == "polski":
+        subject_emoji = "🇵🇱"
+        subject_color = LIGHT_THEME['gradient_primary']  # Use primary color for Polish
+    else:  # angielski
+        subject_emoji = "🇬🇧"
+        subject_color = LIGHT_THEME['gradient_secondary']  # Use secondary color for English
 
     zestawy_div = html.Div([
         html.Div([
@@ -903,14 +983,14 @@ def get_stats_layout(subject="matematyka"):
         html.Div([
             html.Div([
                 dcc.Graph(
-                    id=f'stats-graph-{"it" if subject=="informatyka" else "math"}',
+                    id=f'stats-graph-{"it" if subject=="informatyka" else "polski" if subject=="polski" else "angielski" if subject=="angielski" else "math"}',
                     style={
                         'background': 'transparent',
                         'borderRadius': LIGHT_THEME['radius']
                     }
                 ),
                 html.Div(
-                    id=f'stats-summary-{"it" if subject=="informatyka" else "math"}',
+                    id=f'stats-summary-{"it" if subject=="informatyka" else "polski" if subject=="polski" else "angielski" if subject=="angielski" else "math"}',
                     style={'marginTop': '32px'}
                 )
             ], style={
@@ -927,6 +1007,12 @@ def get_stats_layout(subject="matematyka"):
 
 def get_stats_layout_it():
     return get_stats_layout(subject="informatyka")
+
+def get_stats_layout_polski():
+    return get_stats_layout(subject="polski")
+
+def get_stats_layout_angielski():
+    return get_stats_layout(subject="angielski")
 
 def get_manage_categories_layout():
     return html.Div([
@@ -982,8 +1068,10 @@ def get_manage_categories_layout():
                             dcc.Dropdown(
                                 id='category-subject-dropdown',
                                 options=[
-                                    {'label': '📊 Matematyka', 'value': 'matematyka'},
-                                    {'label': '💻 Informatyka', 'value': 'informatyka'}
+                                    {'label': '∑ Matematyka', 'value': 'matematyka'},
+                                    {'label': '💻 Informatyka', 'value': 'informatyka'},
+                                    {'label': '🇵🇱 Język Polski', 'value': 'polski'},
+                                    {'label': '🇬🇧 Język Angielski', 'value': 'angielski'}
                                 ],
                                 placeholder="Wybierz przedmiot...",
                                 style={
@@ -1077,8 +1165,10 @@ def get_manage_categories_layout():
                             id='filter-subject-dropdown',
                             options=[
                                 {'label': 'Wszystkie przedmioty', 'value': 'all'},
-                                {'label': '📊 Matematyka', 'value': 'matematyka'},
-                                {'label': '💻 Informatyka', 'value': 'informatyka'}
+                                {'label': '∑ Matematyka', 'value': 'matematyka'},
+                                {'label': '💻 Informatyka', 'value': 'informatyka'},
+                                {'label': '🇵🇱 Język Polski', 'value': 'polski'},
+                                {'label': '🇬🇧 Język Angielski', 'value': 'angielski'}
                             ],
                             value='all',
                             style={
@@ -1110,4 +1200,197 @@ def get_manage_categories_layout():
         'background': LIGHT_THEME['background'],
         'minHeight': '100vh'
     })
+
+def get_settings_layout(theme_name='light'):
+    theme = get_theme(theme_name)
+    return html.Div([
+        html.Div([
+            html.H1([
+                html.Span("⚙️", style={'marginRight': '16px'}),
+                "Ustawienia"
+            ], style={
+                'textAlign': 'center',
+                'color': theme['text'],
+                'fontWeight': '800',
+                'marginBottom': '16px',
+                'fontSize': 'clamp(28px, 4vw, 42px)'
+            }),
+            html.P("Zarządzaj ustawieniami aplikacji", style={
+                'textAlign': 'center',
+                'color': theme['placeholder'],
+                'fontSize': 'clamp(16px, 2vw, 18px)',
+                'fontWeight': '500',
+                'marginBottom': '40px'
+            })
+        ]),
+        
+        html.Div([
+            # Theme Settings Section
+            html.Div([
+                html.H2([
+                    html.Span("🎨", style={'marginRight': '12px'}),
+                    "Motyw"
+                ], style={
+                    'color': theme['text'],
+                    'fontWeight': '700',
+                    'fontSize': '24px',
+                    'marginBottom': '24px'
+                }),
+                
+                html.Div([
+                    html.Label("Wybierz motyw aplikacji:", style={
+                        'display': 'block',
+                        'marginBottom': '12px',
+                        'fontWeight': '600',
+                        'color': theme['text'],
+                        'fontSize': '16px'
+                    }),
+                    
+                    html.Div([
+                        html.Div([
+                            dcc.RadioItems(
+                                id='theme-selector',
+                                options=[
+                                    {
+                                        'label': html.Div([
+                                            html.Span("☀️", style={'marginRight': '8px', 'fontSize': '20px'}),
+                                            "Jasny"
+                                        ], style={'display': 'flex', 'alignItems': 'center'}),
+                                        'value': 'light'
+                                    },
+                                    {
+                                        'label': html.Div([
+                                            html.Span("🌙", style={'marginRight': '8px', 'fontSize': '20px'}),
+                                            "Ciemny"
+                                        ], style={'display': 'flex', 'alignItems': 'center'}),
+                                        'value': 'dark'
+                                    }
+                                ],
+                                value=theme_name,
+                                style={
+                                    'fontSize': '16px',
+                                    'fontWeight': '600'
+                                },
+                                inputStyle={'marginRight': '8px'}
+                            )
+                        ])
+                    ], style={
+                        'background': theme['content_bg'],
+                        'padding': '20px',
+                        'borderRadius': theme['radius'],
+                        'border': f"1px solid {theme['border']}",
+                        'marginBottom': '32px'
+                    })
+                ])
+            ], style={
+                'background': theme['content_bg'],
+                'padding': 'clamp(20px, 3vw, 32px)',
+                'borderRadius': theme['radius_large'],
+                'boxShadow': theme['shadow'],
+                'marginBottom': '32px',
+                'backdropFilter': 'blur(10px)'
+            }),
+            
+            # Database Management Section
+            html.Div([
+                html.H2([
+                    html.Span("🗄️", style={'marginRight': '12px'}),
+                    "Zarządzanie Bazą Danych"
+                ], style={
+                    'color': theme['text'],
+                    'fontWeight': '700',
+                    'fontSize': '24px',
+                    'marginBottom': '16px'
+                }),
+                
+                html.P("⚠️ Uwaga: Te operacje są nieodwracalne!", style={
+                    'color': theme['error'],
+                    'fontSize': '16px',
+                    'fontWeight': '600',
+                    'marginBottom': '24px',
+                    'textAlign': 'center'
+                }),
+                
+                html.Div([
+                    html.Button([
+                        html.Span("🏷️", style={'marginRight': '8px'}),
+                        'Wyczyść Wszystkie Kategorie'
+                    ],
+                    id='settings-clear-categories-button',
+                    n_clicks=0,
+                    style={
+                        'width': '100%',
+                        'padding': '16px',
+                        'background': theme['warning'],
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': theme['radius'],
+                        'cursor': 'pointer',
+                        'fontWeight': '700',
+                        'fontSize': '16px',
+                        'boxShadow': theme['shadow'],
+                        'marginBottom': '12px',
+                        'transition': 'all 0.3s ease'
+                    }),
+                    
+                    html.Button([
+                        html.Span("📝", style={'marginRight': '8px'}),
+                        'Wyczyść Wszystkie Zadania'
+                    ],
+                    id='settings-clear-tasks-button',
+                    n_clicks=0,
+                    style={
+                        'width': '100%',
+                        'padding': '16px',
+                        'background': theme['error'],
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': theme['radius'],
+                        'cursor': 'pointer',
+                        'fontWeight': '700',
+                        'fontSize': '16px',
+                        'boxShadow': theme['shadow'],
+                        'marginBottom': '12px',
+                        'transition': 'all 0.3s ease'
+                    }),
+                    
+                    html.Button([
+                        html.Span("💣", style={'marginRight': '8px'}),
+                        'Wyczyść Całą Bazę Danych'
+                    ],
+                    id='settings-clear-all-button',
+                    n_clicks=0,
+                    style={
+                        'width': '100%',
+                        'padding': '16px',
+                        'background': '#8b0000',
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': theme['radius'],
+                        'cursor': 'pointer',
+                        'fontWeight': '700',
+                        'fontSize': '16px',
+                        'boxShadow': theme['shadow'],
+                        'marginBottom': '24px',
+                        'transition': 'all 0.3s ease'
+                    })
+                ])
+            ], style={
+                'background': theme['content_bg'],
+                'padding': 'clamp(20px, 3vw, 32px)',
+                'borderRadius': theme['radius_large'],
+                'boxShadow': theme['shadow'],
+                'backdropFilter': 'blur(10px)'
+            }),
+            
+            # Settings message area
+            html.Div(id='settings-message', style={
+                'textAlign': 'center',
+                'marginTop': '24px',
+                'fontSize': '16px',
+                'fontWeight': '600'
+            })
+            
+        ], style={'maxWidth': '800px', 'margin': '0 auto'})
+    ], style={'padding': 'clamp(20px, 3vw, 40px)'})
 
