@@ -177,9 +177,9 @@ def get_sidebar():
             ),
             html.Li(
                 dcc.Link([
-                    html.Span("⚙️", style={'marginRight': '12px', 'fontSize': '20px'}),
-                    "Ustawienia"
-                ], href="/settings", style={
+                    html.Span("📅", style={'marginRight': '12px', 'fontSize': '20px'}),
+                    "Kalendarz Postępów"
+                ], href="/calendar", style={
                     'color': LIGHT_THEME['text_light'], 
                     'fontWeight': '600', 
                     'fontSize': '16px', 
@@ -1392,5 +1392,337 @@ def get_settings_layout(theme_name='light'):
             })
             
         ], style={'maxWidth': '800px', 'margin': '0 auto'})
+    ], style={'padding': 'clamp(20px, 3vw, 40px)'})
+
+def get_calendar_layout(year=None, month=None):
+    import datetime
+    from utils import fetch_zadania_by_date
+    
+    today = datetime.date.today()
+    
+    # Użyj bieżącej daty jeśli nie podano parametrów
+    if year is None:
+        year = today.year
+    if month is None:
+        month = today.month
+    
+    # Pobierz pierwszy dzień miesiąca i liczb dni w miesiącu
+    first_day = datetime.date(year, month, 1)
+    if month == 12:
+        last_day = datetime.date(year + 1, 1, 1) - datetime.timedelta(days=1)
+    else:
+        last_day = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
+    
+    # Dzień tygodnia pierwszego dnia miesiąca (0=Poniedziałek, 6=Niedziela)
+    start_weekday = first_day.weekday()
+    
+    # Nazwy miesięcy po polsku
+    months_pl = ['', 'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+                 'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień']
+    
+    # Nagłówki dni tygodnia
+    weekdays = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nie']
+    
+    # Generuj komórki kalendarza
+    calendar_cells = []
+    
+    # Nagłówki dni tygodnia
+    header_row = []
+    for day in weekdays:
+        header_row.append(html.Div(day, style={
+            'padding': '12px',
+            'fontWeight': '700',
+            'fontSize': '14px',
+            'color': LIGHT_THEME['text'],
+            'textAlign': 'center',
+            'background': LIGHT_THEME['gradient_primary'],
+            'color': 'white',
+            'borderRadius': '6px'
+        }))
+    
+    calendar_cells.append(html.Div(header_row, style={
+        'display': 'grid',
+        'gridTemplateColumns': 'repeat(7, 1fr)',
+        'gap': '4px',
+        'marginBottom': '8px'
+    }))
+    
+    # Puste komórki na początku miesiąca
+    current_row = []
+    for _ in range(start_weekday):
+        current_row.append(html.Div('', style={
+            'minHeight': '80px',
+            'border': f"1px solid {LIGHT_THEME['border']}",
+            'borderRadius': LIGHT_THEME['radius'],
+            'background': 'rgba(0,0,0,0.05)'
+        }))
+    
+    # Dni miesiąca
+    for day in range(1, last_day.day + 1):
+        current_date = datetime.date(year, month, day)
+        
+        # Sprawdź czy w tym dniu były aktywności (rozwiązane zadania)
+        tasks_on_day = fetch_zadania_by_date(current_date)
+        solved_tasks = [task for task in tasks_on_day if task.get('solved', False)]
+        
+        # Określ kolor dnia
+        if current_date == today:
+            day_style = {
+                'minHeight': '80px',
+                'border': '3px solid #667eea',
+                'borderRadius': LIGHT_THEME['radius'],
+                'background': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'color': 'white',
+                'display': 'flex',
+                'flexDirection': 'column',
+                'justifyContent': 'center',
+                'alignItems': 'center',
+                'fontWeight': '700',
+                'fontSize': '16px',
+                'position': 'relative',
+                'cursor': 'pointer',
+                'transition': 'all 0.3s ease'
+            }
+        elif solved_tasks:
+            day_style = {
+                'minHeight': '80px',
+                'border': f"2px solid {LIGHT_THEME['success']}",
+                'borderRadius': LIGHT_THEME['radius'],
+                'background': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                'color': 'white',
+                'display': 'flex',
+                'flexDirection': 'column',
+                'justifyContent': 'center',
+                'alignItems': 'center',
+                'fontWeight': '600',
+                'fontSize': '14px',
+                'position': 'relative',
+                'cursor': 'pointer',
+                'transition': 'all 0.3s ease'
+            }
+        else:
+            day_style = {
+                'minHeight': '80px',
+                'border': f"1px solid {LIGHT_THEME['border']}",
+                'borderRadius': LIGHT_THEME['radius'],
+                'background': LIGHT_THEME['content_bg'],
+                'color': LIGHT_THEME['text'],
+                'display': 'flex',
+                'flexDirection': 'column',
+                'justifyContent': 'center',
+                'alignItems': 'center',
+                'fontWeight': '500',
+                'fontSize': '14px',
+                'position': 'relative',
+                'cursor': 'pointer',
+                'transition': 'all 0.3s ease'
+            }
+        
+        # Zawartość komórki dnia
+        day_content = [html.Div(str(day), style={'marginBottom': '4px'})]
+        
+        if solved_tasks:
+            day_content.append(html.Div([
+                html.Span("✅", style={'fontSize': '12px', 'marginRight': '2px'}),
+                str(len(solved_tasks))
+            ], style={'fontSize': '10px', 'fontWeight': '600'}))
+        
+        if current_date == today:
+            day_content.append(html.Div("Dziś", style={'fontSize': '10px', 'fontWeight': '800'}))
+        
+        current_row.append(html.Div(day_content, style=day_style))
+        
+        # Jeśli mamy 7 dni w rzędzie, dodaj rząd do kalendarza
+        if len(current_row) == 7:
+            calendar_cells.append(html.Div(current_row, style={
+                'display': 'grid',
+                'gridTemplateColumns': 'repeat(7, 1fr)',
+                'gap': '4px',
+                'marginBottom': '4px'
+            }))
+            current_row = []
+    
+    # Dopełnij ostatni rząd pustymi komórkami
+    while len(current_row) < 7:
+        current_row.append(html.Div('', style={
+            'minHeight': '80px',
+            'border': f"1px solid {LIGHT_THEME['border']}",
+            'borderRadius': LIGHT_THEME['radius'],
+            'background': 'rgba(0,0,0,0.05)'
+        }))
+    
+    if current_row:
+        calendar_cells.append(html.Div(current_row, style={
+            'display': 'grid',
+            'gridTemplateColumns': 'repeat(7, 1fr)',
+            'gap': '4px'
+        }))
+    
+    return html.Div([
+        html.Div([
+            html.H1([
+                html.Span("📅", style={'marginRight': '16px'}),
+                "Kalendarz Postępów"
+            ], style={
+                'textAlign': 'center',
+                'color': LIGHT_THEME['text'],
+                'fontWeight': '800',
+                'marginBottom': '16px',
+                'fontSize': 'clamp(28px, 4vw, 42px)'
+            }),
+            html.P("Śledź swoje codzienne postępy w nauce", style={
+                'textAlign': 'center',
+                'color': LIGHT_THEME['placeholder'],
+                'fontSize': 'clamp(16px, 2vw, 18px)',
+                'fontWeight': '500',
+                'marginBottom': '40px'
+            })
+        ]),
+        
+        html.Div([
+            html.Div([
+                # Nagłówek miesiąca z nawigacją
+                html.Div([
+                    html.Div([
+                        html.Button([
+                            html.Span("←", style={'fontSize': '20px', 'fontWeight': '800'})
+                        ],
+                        id='prev-month-btn',
+                        n_clicks=0,
+                        style={
+                            'background': LIGHT_THEME['gradient_primary'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '50%',
+                            'width': '45px',
+                            'height': '45px',
+                            'cursor': 'pointer',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'transition': 'all 0.3s ease'
+                        }),
+                        
+                        html.H2([
+                            html.Span("📆", style={'marginRight': '12px'}),
+                            f"{months_pl[month]} {year}"
+                        ], style={
+                            'color': LIGHT_THEME['text'],
+                            'fontWeight': '700',
+                            'fontSize': '28px',
+                            'margin': '0',
+                            'flex': '1',
+                            'textAlign': 'center'
+                        }),
+                        
+                        html.Button([
+                            html.Span("→", style={'fontSize': '20px', 'fontWeight': '800'})
+                        ],
+                        id='next-month-btn',
+                        n_clicks=0,
+                        style={
+                            'background': LIGHT_THEME['gradient_primary'],
+                            'color': 'white',
+                            'border': 'none',
+                            'borderRadius': '50%',
+                            'width': '45px',
+                            'height': '45px',
+                            'cursor': 'pointer',
+                            'display': 'flex',
+                            'alignItems': 'center',
+                            'justifyContent': 'center',
+                            'boxShadow': LIGHT_THEME['shadow'],
+                            'transition': 'all 0.3s ease'
+                        })
+                    ], style={
+                        'display': 'flex',
+                        'alignItems': 'center',
+                        'justifyContent': 'space-between',
+                        'marginBottom': '24px'
+                    }),
+                    
+                    # Legenda
+                    html.Div([
+                        html.Div([
+                            html.Div(style={
+                                'width': '20px',
+                                'height': '20px',
+                                'background': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                'borderRadius': '50%',
+                                'marginRight': '8px'
+                            }),
+                            html.Span("Dzień z aktywnością", style={'fontSize': '14px', 'fontWeight': '600'})
+                        ], style={'display': 'flex', 'alignItems': 'center', 'marginRight': '24px'}),
+                        
+                        html.Div([
+                            html.Div(style={
+                                'width': '20px',
+                                'height': '20px',
+                                'background': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                'borderRadius': '50%',
+                                'marginRight': '8px'
+                            }),
+                            html.Span("Dzisiaj", style={'fontSize': '14px', 'fontWeight': '600'})
+                        ], style={'display': 'flex', 'alignItems': 'center', 'marginRight': '24px'}),
+                        
+                        html.Div([
+                            html.Div(style={
+                                'width': '20px',
+                                'height': '20px',
+                                'background': LIGHT_THEME['content_bg'],
+                                'border': f"1px solid {LIGHT_THEME['border']}",
+                                'borderRadius': '50%',
+                                'marginRight': '8px'
+                            }),
+                            html.Span("Brak aktywności", style={'fontSize': '14px', 'fontWeight': '600'})
+                        ], style={'display': 'flex', 'alignItems': 'center'})
+                    ], style={
+                        'display': 'flex',
+                        'justifyContent': 'center',
+                        'marginBottom': '32px',
+                        'flexWrap': 'wrap',
+                        'gap': '16px'
+                    })
+                ]),
+                
+                # Kalendarz
+                html.Div(calendar_cells, style={
+                    'marginBottom': '32px'
+                }),
+                
+                # Statystyki miesięczne
+                html.Div([
+                    html.H3([
+                        html.Span("📊", style={'marginRight': '12px'}),
+                        "Statystyki tego miesiąca"
+                    ], style={
+                        'color': LIGHT_THEME['text'],
+                        'fontWeight': '700',
+                        'fontSize': '24px',
+                        'marginBottom': '20px',
+                        'textAlign': 'center'
+                    }),
+                    
+                    html.Div(id='calendar-stats', style={
+                        'display': 'grid',
+                        'gridTemplateColumns': 'repeat(auto-fit, minmax(200px, 1fr))',
+                        'gap': '20px'
+                    })
+                ], style={
+                    'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+                    'padding': '24px',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'border': f"1px solid {LIGHT_THEME['border']}"
+                })
+                
+            ], style={
+                'background': LIGHT_THEME['content_bg'],
+                'borderRadius': LIGHT_THEME['radius_large'],
+                'boxShadow': LIGHT_THEME['shadow_strong'],
+                'padding': 'clamp(20px, 3vw, 40px)',
+                'backdropFilter': 'blur(10px)'
+            })
+        ], style={'maxWidth': '1200px', 'margin': '0 auto'})
     ], style={'padding': 'clamp(20px, 3vw, 40px)'})
 

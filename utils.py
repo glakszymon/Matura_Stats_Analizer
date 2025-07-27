@@ -874,3 +874,99 @@ def delete_kategoria(kategoria_id):
     cur.close()
     conn.close()
     return rows_affected > 0
+
+def fetch_zadania_by_date(target_date):
+    """Pobierz wszystkie zadania rozwiązane w określonym dniu"""
+    import datetime
+    
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    # Konwertuj datę na format string dla zapytania SQL
+    date_str = target_date.strftime('%Y-%m-%d')
+    
+    cur.execute("""
+        SELECT 
+            z.id as id,
+            z.nr_zadania as number,
+            z.nazwa as name,
+            z.tresc as content,
+            z.solved as solved,
+            z.created_at as created,
+            z.id_zestawu as set_id,
+            zm.name as set_name,
+            zm.subject as subject,
+            GROUP_CONCAT(k.nazwa) as kategorie_nazwy,
+            GROUP_CONCAT(k.id) as kategorie_ids
+        FROM Zadanie z
+        LEFT JOIN zestaw_matura zm ON z.id_zestawu = zm.id
+        LEFT JOIN zadanie_kategoria zk ON z.id = zk.zadanie_id
+        LEFT JOIN kategoria k ON zk.kategoria_id = k.id
+        WHERE DATE(z.created_at) = ?
+        GROUP BY z.id
+        ORDER BY z.created_at DESC
+    """, (date_str,))
+    
+    zadania = cur.fetchall()
+    for zad in zadania:
+        zad['tags'] = [t.strip() for t in zad.get('kategorie_nazwy', '').split(',')] if zad.get('kategorie_nazwy') else []
+        zad['kategorie_ids'] = [int(t.strip()) for t in zad.get('kategorie_ids', '').split(',')] if zad.get('kategorie_ids') else []
+        zad['solved'] = bool(zad['solved'])
+        if 'subject' not in zad or not zad['subject']:
+            zad['subject'] = 'matematyka'
+    
+    cur.close()
+    conn.close()
+    return zadania
+
+def get_calendar_stats_for_month(year, month):
+    """Pobierz statystyki kalendarza dla określonego miesiąca"""
+    import datetime
+    
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    
+    # Pierwszy i ostatni dzień miesiąca
+    first_day = datetime.date(year, month, 1)
+    if month == 12:
+        last_day = datetime.date(year + 1, 1, 1) - datetime.timedelta(days=1)
+    else:
+        last_day = datetime.date(year, month + 1, 1) - datetime.timedelta(days=1)
+    
+    cur.execute("""
+        SELECT 
+            DATE(z.created_at) as date,
+            COUNT(*) as total_tasks,
+            SUM(z.solved) as solved_tasks,
+            zm.subject
+        FROM Zadanie z
+        LEFT JOIN zestaw_matura zm ON z.id_zestawu = zm.id
+        WHERE DATE(z.created_at) BETWEEN ? AND ?
+        GROUP BY DATE(z.created_at), zm.subject
+        ORDER BY DATE(z.created_at) DESC
+    """, (first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')))
+    
+    daily_stats = cur.fetchall()
+    
+    # Oblicz ogólne statystyki miesięczne
+    cur.execute("""
+        SELECT 
+            COUNT(*) as total_tasks,
+            SUM(z.solved) as solved_tasks,
+            COUNT(DISTINCT DATE(z.created_at)) as active_days,
+            zm.subject
+        FROM Zadanie z
+        LEFT JOIN zestaw_matura zm ON z.id_zestawu = zm.id
+        WHERE DATE(z.created_at) BETWEEN ? AND ?
+        GROUP BY zm.subject
+    """, (first_day.strftime('%Y-%m-%d'), last_day.strftime('%Y-%m-%d')))
+    
+    monthly_stats = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return {
+        'daily_stats': daily_stats,
+        'monthly_stats': monthly_stats
+    }

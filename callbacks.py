@@ -57,7 +57,7 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def display_page(pathname):
-        from layouts import get_home_layout, get_stats_layout, get_stats_layout_it, get_stats_layout_polski, get_stats_layout_angielski, get_math_tasks_layout, get_manage_categories_layout, get_settings_layout
+        from layouts import get_home_layout, get_stats_layout, get_stats_layout_it, get_stats_layout_polski, get_stats_layout_angielski, get_math_tasks_layout, get_manage_categories_layout, get_settings_layout, get_calendar_layout
         if pathname == '/':
             return get_home_layout()
         elif pathname == '/math-tasks':
@@ -72,6 +72,8 @@ def register_callbacks(app):
             return get_stats_layout_angielski()
         elif pathname == '/manage-categories':
             return get_manage_categories_layout()
+        elif pathname == '/calendar':
+            return get_calendar_layout()
         elif pathname == '/settings':
             return get_settings_layout()
         else:
@@ -1354,6 +1356,228 @@ def register_callbacks(app):
             return theme_data, message, new_layout
         else:
             return theme_data, message, no_update
+
+    # Initialize calendar date store when visiting calendar page
+    @app.callback(
+        Output('calendar-date-store', 'data'),
+        Input('url', 'pathname'),
+        State('calendar-date-store', 'data')
+    )
+    def initialize_calendar_date(pathname, current_data):
+        if pathname == '/calendar' and (current_data.get('year') is None or current_data.get('month') is None):
+            import datetime
+            today = datetime.date.today()
+            return {'year': today.year, 'month': today.month}
+        return current_data
+
+    # Calendar navigation callback
+    @app.callback(
+        [Output('page-content', 'children', allow_duplicate=True),
+         Output('calendar-date-store', 'data', allow_duplicate=True)],
+        [Input('prev-month-btn', 'n_clicks'),
+         Input('next-month-btn', 'n_clicks')],
+        [State('calendar-date-store', 'data'),
+         State('url', 'pathname')],
+        prevent_initial_call=True
+    )
+    def navigate_calendar_months(prev_clicks, next_clicks, date_data, pathname):
+        if pathname != '/calendar':
+            return no_update, no_update
+            
+        import datetime
+        from dash import callback_context
+        
+        ctx = callback_context
+        if not ctx.triggered:
+            return no_update, no_update
+            
+        current_year = date_data.get('year')
+        current_month = date_data.get('month')
+        
+        if current_year is None or current_month is None:
+            today = datetime.date.today()
+            current_year = today.year
+            current_month = today.month
+        
+        trigger = ctx.triggered[0]['prop_id']
+        
+        if 'prev-month-btn' in trigger and prev_clicks:
+            # Poprzedni miesiąc
+            if current_month == 1:
+                new_month = 12
+                new_year = current_year - 1
+            else:
+                new_month = current_month - 1
+                new_year = current_year
+        elif 'next-month-btn' in trigger and next_clicks:
+            # Następny miesiąc
+            if current_month == 12:
+                new_month = 1
+                new_year = current_year + 1
+            else:
+                new_month = current_month + 1
+                new_year = current_year
+        else:
+            return no_update, no_update
+            
+        new_date_data = {'year': new_year, 'month': new_month}
+        from layouts import get_calendar_layout
+        new_layout = get_calendar_layout(new_year, new_month)
+        
+        return new_layout, new_date_data
+
+    # Calendar stats callback
+    @app.callback(
+        Output('calendar-stats', 'children'),
+        Input('calendar-date-store', 'data')
+    )
+    def update_calendar_stats(date_data):
+        if not date_data or date_data.get('year') is None or date_data.get('month') is None:
+            return no_update
+            
+        import datetime
+        from utils import get_calendar_stats_for_month
+        
+        year = date_data['year']
+        month = date_data['month']
+        stats = get_calendar_stats_for_month(year, month)
+        
+        # Oblicz statystyki ogólne
+        total_tasks = 0
+        solved_tasks = 0
+        active_days = set()
+        
+        for daily_stat in stats['daily_stats']:
+            total_tasks += daily_stat['total_tasks']
+            solved_tasks += daily_stat['solved_tasks']
+            active_days.add(daily_stat['date'])
+        
+        success_rate = (solved_tasks / total_tasks * 100) if total_tasks > 0 else 0
+        active_days_count = len(active_days)
+        
+        # Statystyki według przedmiotów
+        subject_stats = {}
+        for monthly_stat in stats['monthly_stats']:
+            subject = monthly_stat.get('subject', 'matematyka')
+            subject_stats[subject] = {
+                'total': monthly_stat['total_tasks'],
+                'solved': monthly_stat['solved_tasks'],
+                'active_days': monthly_stat['active_days']
+            }
+        
+        stats_cards = []
+        
+        # Karta ogólnych statystyk
+        stats_cards.append(html.Div([
+            html.Div("📈", style={'fontSize': '32px', 'marginBottom': '8px'}),
+            html.H4(f"{active_days_count}", style={
+                'margin': '0',
+                'fontSize': '28px',
+                'fontWeight': '800',
+                'color': '#667eea'
+            }),
+            html.P("Aktywne dni", style={
+                'margin': '4px 0 0 0',
+                'fontSize': '14px',
+                'color': LIGHT_THEME['placeholder'],
+                'fontWeight': '600'
+            })
+        ], style={
+            'textAlign': 'center',
+            'padding': '20px',
+            'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+            'borderRadius': LIGHT_THEME['radius'],
+            'border': f"1px solid {LIGHT_THEME['border']}"
+        }))
+        
+        # Karta zadań
+        stats_cards.append(html.Div([
+            html.Div("📝", style={'fontSize': '32px', 'marginBottom': '8px'}),
+            html.H4(f"{solved_tasks}/{total_tasks}", style={
+                'margin': '0',
+                'fontSize': '28px',
+                'fontWeight': '800',
+                'color': LIGHT_THEME['success'] if success_rate > 60 else LIGHT_THEME['warning'] if success_rate > 30 else LIGHT_THEME['error']
+            }),
+            html.P("Zadania rozwiązane", style={
+                'margin': '4px 0 0 0',
+                'fontSize': '14px',
+                'color': LIGHT_THEME['placeholder'],
+                'fontWeight': '600'
+            })
+        ], style={
+            'textAlign': 'center',
+            'padding': '20px',
+            'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+            'borderRadius': LIGHT_THEME['radius'],
+            'border': f"1px solid {LIGHT_THEME['border']}"
+        }))
+        
+        # Karta skuteczności
+        stats_cards.append(html.Div([
+            html.Div("🎯", style={'fontSize': '32px', 'marginBottom': '8px'}),
+            html.H4(f"{success_rate:.1f}%", style={
+                'margin': '0',
+                'fontSize': '28px',
+                'fontWeight': '800',
+                'color': LIGHT_THEME['success'] if success_rate > 60 else LIGHT_THEME['warning'] if success_rate > 30 else LIGHT_THEME['error']
+            }),
+            html.P("Skuteczność", style={
+                'margin': '4px 0 0 0',
+                'fontSize': '14px',
+                'color': LIGHT_THEME['placeholder'],
+                'fontWeight': '600'
+            })
+        ], style={
+            'textAlign': 'center',
+            'padding': '20px',
+            'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+            'borderRadius': LIGHT_THEME['radius'],
+            'border': f"1px solid {LIGHT_THEME['border']}"
+        }))
+        
+        # Karty dla każdego przedmiotu
+        subject_emojis = {
+            'matematyka': '∑',
+            'informatyka': '💻',
+            'polski': '🇵🇱',
+            'angielski': '🇬🇧'
+        }
+        
+        for subject, stats in subject_stats.items():
+            if stats['total'] > 0:
+                subject_success_rate = (stats['solved'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                emoji = subject_emojis.get(subject, '📚')
+                
+                stats_cards.append(html.Div([
+                    html.Div(emoji, style={'fontSize': '32px', 'marginBottom': '8px'}),
+                    html.H4(f"{stats['solved']}/{stats['total']}", style={
+                        'margin': '0',
+                        'fontSize': '24px',
+                        'fontWeight': '800',
+                        'color': LIGHT_THEME['text']
+                    }),
+                    html.P(f"{subject.capitalize()}", style={
+                        'margin': '4px 0 0 0',
+                        'fontSize': '14px',
+                        'color': LIGHT_THEME['placeholder'],
+                        'fontWeight': '600'
+                    }),
+                    html.P(f"{subject_success_rate:.1f}% skuteczności", style={
+                        'margin': '2px 0 0 0',
+                        'fontSize': '12px',
+                        'color': LIGHT_THEME['success'] if subject_success_rate > 60 else LIGHT_THEME['warning'] if subject_success_rate > 30 else LIGHT_THEME['error'],
+                        'fontWeight': '600'
+                    })
+                ], style={
+                    'textAlign': 'center',
+                    'padding': '20px',
+                    'background': 'linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%)',
+                    'borderRadius': LIGHT_THEME['radius'],
+                    'border': f"1px solid {LIGHT_THEME['border']}"
+                }))
+        
+        return stats_cards
 
     # Clientside callback to load theme from localStorage
     app.clientside_callback(

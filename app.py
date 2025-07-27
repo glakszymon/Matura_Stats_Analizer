@@ -1,7 +1,7 @@
 import dash
 from dash import dcc, html, Input, Output, State, ALL
 from theme import LIGHT_THEME
-from layouts import get_sidebar, get_home_layout, get_stats_layout, get_stats_layout_it, get_stats_layout_polski, get_stats_layout_angielski, get_manage_categories_layout, get_settings_layout
+from layouts import get_sidebar, get_home_layout, get_stats_layout, get_stats_layout_it, get_stats_layout_polski, get_stats_layout_angielski, get_manage_categories_layout, get_settings_layout, get_calendar_layout
 from callbacks import register_callbacks
 from template_loader import load_html_template
 
@@ -978,6 +978,7 @@ app.layout = html.Div([
     dcc.Store(id='delete-task-store', data={}),
     dcc.Store(id='keyboard-store', data={'keys': []}),
     dcc.Store(id='theme-store', data={'theme': 'light'}),
+    dcc.Store(id='calendar-date-store', data={'year': None, 'month': None}),
     
     # Confirmation modals for database operations
     html.Div(
